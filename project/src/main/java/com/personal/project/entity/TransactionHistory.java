@@ -1,11 +1,18 @@
 package com.personal.project.entity;
 
-import com.personal.project.enums.TransactionStatus;
-import com.personal.project.enums.TransactionType;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,7 +23,6 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class TransactionHistory {
 
     @Id
@@ -25,50 +31,25 @@ public class TransactionHistory {
     private Integer transactionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "branch_id", nullable = false)
+    @JoinColumn(name = "branch_id")
     private VendorBranch branch;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "transaction_type")
-    private TransactionType transactionType;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "transaction_status")
-    private TransactionStatus transactionStatus;
-
-    @NotNull(message = "Quantity cannot be null")
-    @DecimalMin(
-            value = "0.01",
-            message = "Quantity must be greater than 0"
-    )
-    @Column(
-            nullable = false,
-            precision = 10,
-            scale = 2
-    )
+    @Column(name = "quantity", nullable = false)
     private BigDecimal quantity;
 
-    @NotNull(message = "Amount cannot be null")
-    @DecimalMin(
-            value = "0.01",
-            message = "Amount must be greater than 0"
-    )
-    @Column(
-            nullable = false,
-            precision = 18,
-            scale = 2
-    )
+    @Column(name = "amount", nullable = false)
     private BigDecimal amount;
+
+    @Column(name = "transaction_type", nullable = false)
+    private String transactionType;
+
+    @Column(name = "transaction_status", nullable = false)
+    private String transactionStatus;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-
-    @PrePersist
-    public void setCreatedAt() {
-        this.createdAt = LocalDateTime.now();
-    }
 }

@@ -1,12 +1,18 @@
 package com.personal.project.entity;
 
-import com.personal.project.enums.PaymentMethod;
-import com.personal.project.enums.PaymentStatus;
-import com.personal.project.enums.PaymentTransactionType;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -17,7 +23,6 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Payment {
 
     @Id
@@ -26,38 +31,21 @@ public class Payment {
     private Integer paymentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
-    @NotNull(message = "Amount cannot be null")
-    @DecimalMin(
-            value = "0.01",
-            message = "Amount must be greater than 0"
-    )
-    @Column(
-            nullable = false,
-            precision = 18,
-            scale = 2
-    )
+    @Column(name = "amount", nullable = false)
     private BigDecimal amount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method")
-    private PaymentMethod paymentMethod;
+    @Column(name = "payment_method", nullable = false)
+    private String paymentMethod;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "transaction_type")
-    private PaymentTransactionType transactionType;
+    @Column(name = "transaction_type", nullable = false)
+    private String transactionType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status")
-    private PaymentStatus paymentStatus;
+    @Column(name = "payment_status", nullable = false)
+    private String paymentStatus;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-
-    @PrePersist
-    public void setCreatedAt() {
-        this.createdAt = LocalDateTime.now();
-    }
 }

@@ -1,8 +1,15 @@
 package com.personal.project.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "addresses")
@@ -10,7 +17,6 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Address {
 
     @Id
@@ -18,22 +24,18 @@ public class Address {
     @Column(name = "address_id")
     private Integer addressId;
 
-    @NotBlank(message = "Street cannot be blank")
-    @Column(nullable = false)
+    @Column(name = "street", nullable = false)
     private String street;
 
-    @NotBlank(message = "City cannot be blank")
-    @Column(nullable = false)
+    @Column(name = "city", nullable = false)
     private String city;
 
-    @NotBlank(message = "State cannot be blank")
-    @Column(nullable = false)
+    @Column(name = "state", nullable = false)
     private String state;
 
     @Column(name = "postal_code")
     private String postalCode;
 
-    @NotBlank(message = "Country cannot be blank")
-    @Column(nullable = false)
+    @Column(name = "country", nullable = false)
     private String country;
 }

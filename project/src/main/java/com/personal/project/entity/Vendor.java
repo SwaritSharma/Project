@@ -1,14 +1,18 @@
 package com.personal.project.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Table(name = "vendors")
@@ -16,7 +20,6 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Vendor {
 
     @Id
@@ -24,16 +27,15 @@ public class Vendor {
     @Column(name = "vendor_id")
     private Integer vendorId;
 
-    @NotBlank(message = "Vendor name cannot be blank")
     @Column(name = "vendor_name", nullable = false, unique = true)
     private String vendorName;
 
+    @Column(name = "description")
     private String description;
 
     @Column(name = "contact_person_name")
     private String contactPersonName;
 
-    @Email(message = "Invalid email format")
     @Column(name = "contact_email")
     private String contactEmail;
 
@@ -43,39 +45,15 @@ public class Vendor {
     @Column(name = "website_url")
     private String websiteUrl;
 
-    @DecimalMin(value = "0.0")
-    @Column(
-            name = "total_gold_quantity",
-            nullable = false,
-            precision = 18,
-            scale = 2
-    )
+    @Column(name = "total_gold_quantity", nullable = false)
     private BigDecimal totalGoldQuantity;
 
-    @DecimalMin(value = "0.0")
-    @Column(
-            name = "current_gold_price",
-            nullable = false,
-            precision = 18,
-            scale = 2
-    )
+    @Column(name = "current_gold_price", nullable = false)
     private BigDecimal currentGoldPrice;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @NotBlank(message = "Password cannot be blank")
-    @Column(nullable = false)
+    @Column(name = "password")
     private String password;
-
-    @OneToMany(
-            mappedBy = "vendor",
-            cascade = CascadeType.ALL
-    )
-    private List<VendorBranch> branches;
-
-    @PrePersist
-    public void setCreatedAt() {
-        this.createdAt = LocalDateTime.now();
-    }
 }
