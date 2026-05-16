@@ -22,4 +22,8 @@ public interface VendorRepository
     Optional<Vendor> findByVendorName(
             String vendorName
     );
+
+    Optional<Vendor> findByContactEmail(
+            String contactEmail
+    );
 }
