@@ -6,16 +6,35 @@ on:
       - dev
       - main
       - feature/Digital-Gold-Wallet
+      - feature/Digital-Gold-Wallet-2
 
   pull_request:
     branches:
       - dev
       - main
       - feature/Digital-Gold-Wallet
+      - feature/Digital-Gold-Wallet-2
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: digital_gold_wallet_test
+
+        ports:
+          - 3306:3306
+
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     defaults:
       run:
@@ -35,8 +54,5 @@ jobs:
       - name: Give execute permission to Maven Wrapper
         run: chmod +x mvnw
 
-      - name: Build Application
-        run: ./mvnw clean install
-
-      - name: Run Tests
-        run: ./mvnw test
+      - name: Build and Run Tests
+        run: ./mvnw clean test
