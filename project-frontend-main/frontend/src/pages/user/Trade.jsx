@@ -1,0 +1,469 @@
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { api, fmtINR, fmtINR2, fmtGrams } from "@/lib/api";
+import { Card, PageHeader, Button, Field, Input, Badge } from "@/components/ui-kit";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import {
+    TrendingUp,
+    TrendingDown,
+    Store,
+    CheckCircle2,
+} from "lucide-react";
+
+export default function Trade() {
+    const { user } = useAuth();
+    const [tab, setTab] = useState("buy");
+    const [vendors, setVendors] = useState([]);
+    const [holdings, setHoldings] = useState([]);
+    const [balance, setBalance] = useState(0);
+
+    const load = useCallback(async () => {
+        const [v, h, d] = await Promise.all([
+            api.get("/vendors"),
+            api.get(`/users/${user.user_id}/holdings`),
+            api.get(`/users/${user.user_id}/dashboard`),
+        ]);
+        setVendors(v.data);
+        setHoldings(h.data);
+        setBalance(d.data.balance);
+    }, [user]);
+
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    return (
+        <div data-testid="trade-page">
+            <PageHeader
+                eyebrow="Trade Desk"
+                title="Buy / Sell Virtual Gold"
+                subtitle="Settlement T+0 · Direct from refiners"
+                actions={
+                    <div className="text-right">
+                        <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                            Wallet
+                        </div>
+                        <div className="mono text-2xl font-bold neon-cyan">
+                            {fmtINR(balance)}
+                        </div>
+                    </div>
+                }
+            />
+
+            <div className="inline-flex p-1 rounded-lg border border-border bg-background/40 mb-6">
+                <TabBtn
+                    active={tab === "buy"}
+                    onClick={() => setTab("buy")}
+                    icon={TrendingDown}
+                    label="Buy"
+                    testId="buy-tab"
+                />
+                <TabBtn
+                    active={tab === "sell"}
+                    onClick={() => setTab("sell")}
+                    icon={TrendingUp}
+                    label="Sell"
+                    testId="sell-tab"
+                />
+            </div>
+
+            {tab === "buy" ? (
+                <BuyForm
+                    vendors={vendors}
+                    balance={balance}
+                    userId={user.user_id}
+                    onDone={load}
+                />
+            ) : (
+                <SellForm
+                    holdings={holdings}
+                    userId={user.user_id}
+                    onDone={load}
+                />
+            )}
+        </div>
+    );
+}
+
+function TabBtn({ active, onClick, icon: Icon, label, testId }) {
+    return (
+        <button
+            onClick={onClick}
+            data-testid={testId}
+            className={cn(
+                "px-5 py-2 rounded-md text-sm font-medium transition inline-flex items-center gap-2",
+                active
+                    ? "bg-primary/15 text-primary ring-1 ring-primary/30"
+                    : "text-muted-foreground hover:text-foreground",
+            )}
+        >
+            <Icon className="w-4 h-4" /> {label}
+        </button>
+    );
+}
+
+function BuyForm({ vendors, balance, userId, onDone }) {
+    const [vendorId, setVendorId] = useState("");
+    const [qty, setQty] = useState("");
+    const [busy, setBusy] = useState(false);
+
+    const vendor = useMemo(
+        () => vendors.find((v) => String(v.vendor_id) === vendorId),
+        [vendors, vendorId],
+    );
+    const total = vendor && qty ? vendor.current_gold_price * parseFloat(qty) : 0;
+    const insufficient = total > balance;
+
+    const submit = async (e) => {
+        e.preventDefault();
+        const q = parseFloat(qty);
+        if (!vendorId) return toast.error("Select a vendor");
+        if (!q || q <= 0) return toast.error("Enter a valid quantity");
+        try {
+            setBusy(true);
+            await api.post("/virtual-gold/buy", {
+                user_id: userId,
+                vendor_id: parseInt(vendorId),
+                quantity: q,
+            });
+            toast.success(`Purchased ${fmtGrams(q)} of gold`);
+            setQty("");
+            onDone();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Buy failed");
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <form
+            onSubmit={submit}
+            className="grid grid-cols-1 gap-4 lg:grid-cols-3"
+            data-testid="buy-form"
+        >
+            <Card className="lg:col-span-2 space-y-5">
+                <div>
+                    <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
+                        Step 1 · Choose vendor
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {vendors.map((v) => {
+                            const active = String(v.vendor_id) === vendorId;
+                            return (
+                                <button
+                                    type="button"
+                                    key={v.vendor_id}
+                                    onClick={() =>
+                                        setVendorId(String(v.vendor_id))
+                                    }
+                                    className={cn(
+                                        "text-left rounded-lg border p-4 transition",
+                                        active
+                                            ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                                            : "border-border bg-background/40 hover:border-foreground",
+                                    )}
+                                    data-testid={`vendor-card-${v.vendor_id}`}
+                                >
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Store className="w-3.5 h-3.5 text-accent" />
+                                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                                            Refiner
+                                        </span>
+                                    </div>
+                                    <div className="text-base font-semibold leading-tight">
+                                        {v.vendor_name}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                        {v.description}
+                                    </div>
+                                    <div className="mt-3 flex items-baseline justify-between border-t border-border pt-2">
+                                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                                            Rate
+                                        </span>
+                                        <span className="mono text-sm font-semibold neon-gold">
+                                            {fmtINR2(v.current_gold_price)}
+                                            <span className="text-muted-foreground text-xs ml-1">
+                                                /g
+                                            </span>
+                                        </span>
+                                    </div>
+                                    {active && (
+                                        <div className="mt-2 inline-flex items-center gap-1 text-xs text-primary font-medium">
+                                            <CheckCircle2 className="w-3.5 h-3.5" />{" "}
+                                            Selected
+                                        </div>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div>
+                    <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
+                        Step 2 · Quantity (grams)
+                    </div>
+                    <div className="flex items-center gap-2 max-w-md">
+                        <Input
+                            type="number"
+                            step="0.1"
+                            min="0.1"
+                            value={qty}
+                            onChange={(e) => setQty(e.target.value)}
+                            placeholder="0.0"
+                            className="mono text-lg"
+                            data-testid="buy-quantity-input"
+                        />
+                        <div className="flex gap-1">
+                            {[0.5, 1, 5, 10].map((g) => (
+                                <button
+                                    key={g}
+                                    type="button"
+                                    onClick={() => setQty(String(g))}
+                                    className="mono rounded-md border border-border px-2.5 py-1.5 text-xs hover:border-primary hover:text-primary"
+                                    data-testid={`buy-quick-${g}`}
+                                >
+                                    {g}g
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </Card>
+
+            <Card className="self-start lg:sticky lg:top-6" data-testid="buy-summary">
+                <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Order Summary
+                </div>
+                <div className="mt-4 space-y-3 text-sm">
+                    <Row label="Vendor" value={vendor?.vendor_name || "—"} />
+                    <Row
+                        label="Quantity"
+                        value={qty ? fmtGrams(qty) : "—"}
+                        mono
+                    />
+                    <Row
+                        label="Rate"
+                        value={
+                            vendor
+                                ? `${fmtINR2(vendor.current_gold_price)}/g`
+                                : "—"
+                        }
+                        mono
+                    />
+                    <div className="border-t border-border pt-3 flex items-baseline justify-between">
+                        <span className="text-muted-foreground">Total</span>
+                        <span className="mono text-2xl font-bold neon-gold">
+                            {fmtINR(total)}
+                        </span>
+                    </div>
+                    <Row label="Wallet" value={fmtINR(balance)} mono />
+                    {insufficient && total > 0 && (
+                        <Badge tone="destructive" className="w-full justify-center mt-2">
+                            Insufficient wallet balance
+                        </Badge>
+                    )}
+                </div>
+                <Button
+                    type="submit"
+                    variant="primary"
+                    size="lg"
+                    disabled={busy || !vendor || !qty || insufficient}
+                    className="w-full mt-5"
+                    data-testid="buy-submit-button"
+                >
+                    {busy ? "Processing…" : "Confirm Purchase"}
+                </Button>
+            </Card>
+        </form>
+    );
+}
+
+function SellForm({ holdings, userId, onDone }) {
+    const [holdingId, setHoldingId] = useState("");
+    const [qty, setQty] = useState("");
+    const [busy, setBusy] = useState(false);
+
+    const holding = useMemo(
+        () => holdings.find((h) => String(h.holding_id) === holdingId),
+        [holdings, holdingId],
+    );
+    const total = holding && qty ? holding.current_gold_price * parseFloat(qty) : 0;
+    const tooMuch = holding && qty && parseFloat(qty) > holding.quantity;
+
+    const submit = async (e) => {
+        e.preventDefault();
+        const q = parseFloat(qty);
+        if (!holdingId) return toast.error("Select a holding");
+        if (!q || q <= 0) return toast.error("Enter a valid quantity");
+        try {
+            setBusy(true);
+            await api.post("/virtual-gold/sell", {
+                user_id: userId,
+                holding_id: parseInt(holdingId),
+                quantity: q,
+            });
+            toast.success(
+                `Sold ${fmtGrams(q)} · ${fmtINR(total)} credited`,
+            );
+            setQty("");
+            onDone();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Sell failed");
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <form
+            onSubmit={submit}
+            className="grid grid-cols-1 gap-4 lg:grid-cols-3"
+            data-testid="sell-form"
+        >
+            <Card className="lg:col-span-2 space-y-5">
+                <div>
+                    <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
+                        Step 1 · Choose holding
+                    </div>
+                    {holdings.length === 0 ? (
+                        <div className="rounded-lg border border-border bg-background/40 px-4 py-6 text-center text-sm text-muted-foreground">
+                            You have no holdings to sell.
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {holdings.map((h) => {
+                                const active =
+                                    String(h.holding_id) === holdingId;
+                                return (
+                                    <button
+                                        type="button"
+                                        key={h.holding_id}
+                                        onClick={() =>
+                                            setHoldingId(String(h.holding_id))
+                                        }
+                                        className={cn(
+                                            "text-left rounded-lg border p-4 transition",
+                                            active
+                                                ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                                                : "border-border bg-background/40 hover:border-foreground",
+                                        )}
+                                        data-testid={`sell-holding-card-${h.holding_id}`}
+                                    >
+                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                                            #{h.holding_id} · {h.vendor_name}
+                                        </div>
+                                        <div className="mt-1 flex items-baseline justify-between">
+                                            <span className="mono text-xl font-bold neon-gold">
+                                                {fmtGrams(h.quantity)}
+                                            </span>
+                                            <span className="mono text-sm text-muted-foreground">
+                                                {fmtINR(h.value)}
+                                            </span>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                            {h.branch_address.city},{" "}
+                                            {h.branch_address.state}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                <div>
+                    <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
+                        Step 2 · Quantity to sell
+                    </div>
+                    <div className="flex items-center gap-2 max-w-md">
+                        <Input
+                            type="number"
+                            step="0.1"
+                            min="0.1"
+                            value={qty}
+                            onChange={(e) => setQty(e.target.value)}
+                            disabled={!holding}
+                            placeholder="0.0"
+                            className="mono text-lg"
+                            data-testid="sell-quantity-input"
+                        />
+                        {holding && (
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setQty(String(holding.quantity))
+                                }
+                                className="mono rounded-md border border-border px-3 py-1.5 text-xs hover:border-primary hover:text-primary"
+                                data-testid="sell-max-btn"
+                            >
+                                MAX
+                            </button>
+                        )}
+                    </div>
+                    {tooMuch && (
+                        <div className="text-xs text-destructive mt-2">
+                            Cannot exceed {fmtGrams(holding.quantity)}
+                        </div>
+                    )}
+                </div>
+            </Card>
+
+            <Card className="self-start lg:sticky lg:top-6" data-testid="sell-summary">
+                <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Sell Summary
+                </div>
+                <div className="mt-4 space-y-3 text-sm">
+                    <Row
+                        label="Holding"
+                        value={holding ? `#${holding.holding_id}` : "—"}
+                    />
+                    <Row label="Vendor" value={holding?.vendor_name || "—"} />
+                    <Row
+                        label="Quantity"
+                        value={qty ? fmtGrams(qty) : "—"}
+                        mono
+                    />
+                    <Row
+                        label="Rate"
+                        value={
+                            holding
+                                ? `${fmtINR2(holding.current_gold_price)}/g`
+                                : "—"
+                        }
+                        mono
+                    />
+                    <div className="border-t border-border pt-3 flex items-baseline justify-between">
+                        <span className="text-muted-foreground">
+                            Wallet credit
+                        </span>
+                        <span className="mono text-2xl font-bold text-emerald-400">
+                            {fmtINR(total)}
+                        </span>
+                    </div>
+                </div>
+                <Button
+                    type="submit"
+                    variant="accent"
+                    size="lg"
+                    disabled={busy || !holding || !qty || tooMuch}
+                    className="w-full mt-5"
+                    data-testid="sell-submit-button"
+                >
+                    {busy ? "Processing…" : "Confirm Sale"}
+                </Button>
+            </Card>
+        </form>
+    );
+}
+
+function Row({ label, value, mono }) {
+    return (
+        <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">{label}</span>
+            <span className={mono ? "mono" : ""}>{value}</span>
+        </div>
+    );
+}

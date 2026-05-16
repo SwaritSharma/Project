@@ -16,6 +16,10 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import com.personal.project.repository.UserRepository;
+import com.personal.project.repository.AddressRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -50,6 +54,15 @@ class AuthControllerTest {
 
     @MockitoBean
     private JwtService jwtService;
+
+    @MockitoBean
+    private UserRepository userRepository;
+
+    @MockitoBean
+    private AddressRepository addressRepository;
+
+    @MockitoBean
+    private PasswordEncoder passwordEncoder;
 
     @Test
     void shouldLoginSuccessfully()
@@ -94,6 +107,13 @@ class AuthControllerTest {
         ).thenReturn(
                 userDetails
         );
+
+        com.personal.project.entity.User mockUser = new com.personal.project.entity.User();
+        mockUser.setName("Test User");
+        mockUser.setEmail("test@gmail.com");
+        mockUser.setUserId(1);
+
+        when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
 
         when(
                 jwtService.generateToken(

@@ -70,4 +70,10 @@ public interface TransactionHistoryRepository
     findTop5ByBranchVendorVendorIdOrderByCreatedAtDesc(
             Integer vendorId
     );
+
+    Page<TransactionHistory>
+    findByBranchVendorVendorIdOrderByCreatedAtDesc(
+            Integer vendorId,
+            Pageable pageable
+    );
 }

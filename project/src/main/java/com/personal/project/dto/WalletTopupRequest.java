@@ -16,9 +16,8 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class WalletTopupRequest {
 
-    @NotNull(
-            message = "User id is required"
-    )
+    @NotNull(message = "User id is required")
+    @com.fasterxml.jackson.annotation.JsonProperty("user_id")
     private Integer userId;
 
     @NotNull(
@@ -30,8 +29,7 @@ public class WalletTopupRequest {
     )
     private BigDecimal amount;
 
-    @NotBlank(
-            message = "Payment method is required"
-    )
+    @NotBlank(message = "Payment method is required")
+    @com.fasterxml.jackson.annotation.JsonProperty("payment_method")
     private String paymentMethod;
 }

@@ -15,14 +15,12 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class BuyVirtualGoldRequest {
 
-    @NotNull(
-            message = "User id is required"
-    )
+    @NotNull(message = "User id is required")
+    @com.fasterxml.jackson.annotation.JsonProperty("user_id")
     private Integer userId;
 
-    @NotNull(
-            message = "Vendor id is required"
-    )
+    @NotNull(message = "Vendor id is required")
+    @com.fasterxml.jackson.annotation.JsonProperty("vendor_id")
     private Integer vendorId;
 
     @NotNull(

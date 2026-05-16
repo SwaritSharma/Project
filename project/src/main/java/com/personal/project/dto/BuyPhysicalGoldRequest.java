@@ -15,14 +15,12 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class BuyPhysicalGoldRequest {
 
-    @NotNull(
-            message = "User id is required"
-    )
+    @NotNull(message = "User id is required")
+    @com.fasterxml.jackson.annotation.JsonProperty("user_id")
     private Integer userId;
 
-    @NotNull(
-            message = "Vendor id is required"
-    )
+    @NotNull(message = "Vendor id is required")
+    @com.fasterxml.jackson.annotation.JsonProperty("vendor_id")
     private Integer vendorId;
 
     @NotNull(
@@ -34,8 +32,7 @@ public class BuyPhysicalGoldRequest {
     )
     private BigDecimal quantity;
 
-    @NotNull(
-            message = "Delivery address id is required"
-    )
+    @NotNull(message = "Delivery address id is required")
+    @com.fasterxml.jackson.annotation.JsonProperty("delivery_address_id")
     private Integer deliveryAddressId;
 }

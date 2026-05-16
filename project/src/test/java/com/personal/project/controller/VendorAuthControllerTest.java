@@ -15,6 +15,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import com.personal.project.repository.VendorRepository;
+import com.personal.project.repository.VendorBranchRepository;
+import com.personal.project.repository.AddressRepository;
+import com.personal.project.service.GoldPriceService;
+import com.personal.project.entity.Vendor;
+import java.util.Optional;
 
 import static org.mockito.Mockito.when;
 
@@ -48,6 +54,18 @@ class VendorAuthControllerTest {
 
     @MockitoBean
     private PasswordEncoder passwordEncoder;
+
+    @MockitoBean
+    private VendorRepository vendorRepository;
+
+    @MockitoBean
+    private VendorBranchRepository vendorBranchRepository;
+
+    @MockitoBean
+    private AddressRepository addressRepository;
+
+    @MockitoBean
+    private GoldPriceService goldPriceService;
 
     @Test
     void shouldLoginVendorSuccessfully()
@@ -84,6 +102,13 @@ class VendorAuthControllerTest {
         ).thenReturn(
                 userDetails
         );
+
+        Vendor mockVendor = new Vendor();
+        mockVendor.setVendorName("Test Vendor");
+        mockVendor.setContactEmail("vendor@gmail.com");
+        mockVendor.setVendorId(1);
+
+        when(vendorRepository.findByContactEmail("vendor@gmail.com")).thenReturn(Optional.of(mockVendor));
 
         when(
                 passwordEncoder.matches(

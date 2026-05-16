@@ -1,0 +1,187 @@
+import React, { useCallback, useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { api, fmtINR2, fmtGrams } from "@/lib/api";
+import { Card, PageHeader, Badge, Button, Field, Input } from "@/components/ui-kit";
+import { Mail, Phone, Globe, Store, User, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
+
+export default function VendorProfile() {
+    const { user } = useAuth();
+    const [dash, setDash] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState({});
+
+    const load = useCallback(async () => {
+        const { data } = await api.get(`/vendors/${user.vendor_id}/dashboard`);
+        setDash(data);
+        setFormData({
+            contactPersonName: data.contact_person_name,
+            contactEmail: data.contact_email,
+            contactPhone: data.contact_phone,
+            description: data.description,
+            websiteUrl: data.websiteUrl || "",
+        });
+    }, [user]);
+
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    if (!dash) return <div className="text-sm text-muted-foreground">Loading…</div>;
+
+    const handleSave = async () => {
+        try {
+            await api.put(`/vendors/${user.vendor_id}/profile`, formData);
+            toast.success("Profile updated successfully!");
+            setIsEditing(false);
+            load();
+        } catch (err) {
+            toast.error(err.response?.data?.detail || "Failed to update profile");
+        }
+    };
+
+    return (
+        <div data-testid="vendor-profile-page">
+            <PageHeader eyebrow="Account" title="Vendor Profile" />
+
+            <Card className="mb-6 relative overflow-hidden">
+                <div className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-accent/20 blur-3xl" />
+                <div className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-primary/10 blur-3xl" />
+                <div className="relative flex items-center gap-5">
+                    <div className="relative w-16 h-16 grid place-items-center rounded-xl bg-accent/15 ring-1 ring-accent/40">
+                        <Store className="w-8 h-8 text-accent" />
+                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-accent animate-pulse-ring" />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                            <Badge tone="success" className="px-2 py-1 gap-1">
+                                <ShieldCheck className="w-3 h-3" /> Verified Partner
+                            </Badge>
+                        </div>
+                        <div className="text-3xl font-bold tracking-tight mt-1">
+                            {dash.vendor_name}
+                        </div>
+                        {isEditing ? (
+                            <div className="mt-2">
+                                <Field label="Description">
+                                    <Input
+                                        value={formData.description || ""}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        placeholder="Vendor description..."
+                                    />
+                                </Field>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                                {dash.description}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <Card className="lg:col-span-2">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                            Contact Info
+                        </div>
+                        {isEditing ? (
+                            <div className="flex gap-2">
+                                <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+                                <Button size="sm" onClick={handleSave}>Save Changes</Button>
+                            </div>
+                        ) : (
+                            <Button size="sm" variant="ghost" onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                        )}
+                    </div>
+                    {isEditing ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Field label="Contact Person">
+                                <Input
+                                    value={formData.contactPersonName || ""}
+                                    onChange={(e) => setFormData({ ...formData, contactPersonName: e.target.value })}
+                                />
+                            </Field>
+                            <Field label="Email">
+                                <Input
+                                    type="email"
+                                    value={formData.contactEmail || ""}
+                                    onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                                />
+                            </Field>
+                            <Field label="Phone">
+                                <Input
+                                    type="tel"
+                                    value={formData.contactPhone || ""}
+                                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                                />
+                            </Field>
+                            <Field label="Website URL">
+                                <Input
+                                    type="url"
+                                    value={formData.websiteUrl || ""}
+                                    onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+                                />
+                            </Field>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <InfoRow icon={User} label="Contact person" value={dash.contact_person_name} />
+                            <InfoRow icon={Mail} label="Email" value={dash.contact_email} />
+                            <InfoRow icon={Phone} label="Phone" value={dash.contact_phone} />
+                            <InfoRow icon={Globe} label="Website" value={dash.website_url} link />
+                        </div>
+                    )}
+                </Card>
+
+                <Card>
+                    <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                        Quick stats
+                    </div>
+                    <div className="mt-4 space-y-3">
+                        <Stat label="Branches" value={dash.total_branches} />
+                        <Stat label="Current rate" value={`${fmtINR2(dash.current_gold_price)}/g`} accent="gold" />
+                        <Stat label="Inventory" value={fmtGrams(dash.total_gold_quantity)} accent="gold" />
+                        <Stat label="Sold to date" value={fmtGrams(dash.total_sold_quantity)} />
+                    </div>
+                </Card>
+            </div>
+        </div>
+    );
+}
+
+function InfoRow({ icon: Icon, label, value, link }) {
+    return (
+        <div className="rounded-lg border border-border bg-background/40 p-3">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+                <Icon className="w-3 h-3 text-accent" /> {label}
+            </div>
+            <div className="mt-1 text-sm">
+                {link ? (
+                    <a
+                        href={value}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline break-all"
+                    >
+                        {value}
+                    </a>
+                ) : (
+                    <span className="break-words">{value}</span>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function Stat({ label, value, accent }) {
+    return (
+        <div className="flex items-baseline justify-between border-b border-border pb-3 last:border-0">
+            <span className="text-sm text-muted-foreground">{label}</span>
+            <span className={`mono text-xl font-bold ${accent === "gold" ? "neon-gold" : ""}`}>
+                {value}
+            </span>
+        </div>
+    );
+}

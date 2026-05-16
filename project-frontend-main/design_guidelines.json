@@ -1,0 +1,115 @@
+{
+  "theme": "LIGHT",
+  "archetype": "1 (Organic & Earthy)",
+  "design_philosophy": "E1 Anti-AI Designer - Fusion over Imitation. Merging the tactile trust of a physical gold vault with the precision of a modern fintech trading desk. Eliminates default SaaS blue in favor of organic moss greens, terracotta reds, and deep charcoal. Utilizes tight grid layouts and generous negative space to spotlight wealth metrics.",
+  "colors": {
+    "background": "bg-stone-50",
+    "surface": "bg-white",
+    "surface_secondary": "bg-stone-100",
+    "sidebar": "bg-stone-950",
+    "primary": "bg-amber-600",
+    "primary_hover": "hover:bg-amber-700",
+    "primary_text": "text-stone-900",
+    "secondary_text": "text-stone-500",
+    "accent": "text-amber-500",
+    "success_bg": "bg-emerald-50",
+    "success_text": "text-emerald-700",
+    "danger_bg": "bg-rose-50",
+    "danger_text": "text-rose-700",
+    "border": "border-stone-200"
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Cabinet Grotesk",
+      "classes": "font-bold tracking-tight text-stone-900"
+    },
+    "body": {
+      "font_family": "Manrope",
+      "classes": "text-stone-600 leading-relaxed"
+    },
+    "numbers": {
+      "font_family": "Cabinet Grotesk",
+      "classes": "font-medium tracking-tighter text-stone-900"
+    }
+  },
+  "spacing_and_layout": {
+    "grid_system": "The Control Room Grid (grid-cols-1 md:grid-cols-3 lg:grid-cols-4) with gap-4 or gap-6.",
+    "cards": "Flat background, 1px subtle border (border-stone-200), rounded-md. NO heavy drop shadows. Hover states get a slight -translate-y-1 and shadow-sm.",
+    "dashboard_container": "px-4 py-6 md:px-8 md:py-10 max-w-[1600px] mx-auto"
+  },
+  "components": {
+    "button": "rounded-sm, dense padding (px-6 py-2.5), solid amber-600 for primary, sharp borders for secondary.",
+    "tables": "border-collapse, 1px border-b border-stone-200 per row. Text aligned left, numbers aligned right. High density.",
+    "charts": "Recharts Area chart for gold price. Line color: #f59e0b (amber-500). Area fill: gradient from amber-500/20 to transparent. Tooltip must be custom styled with glassmorphism (backdrop-blur-md bg-white/80).",
+    "tabs": "Underline style, not pill style. Active tab has amber-600 border-b-2. Dense layout.",
+    "dialog": "Backdrop blur on overlay (backdrop-blur-sm bg-stone-950/40). Solid white modal body with sharp corners.",
+    "sidebar": "Deep stone-950 background. Text stone-400. Active item text-white with amber-500 left border indicator."
+  },
+  "pages": {
+    "login": {
+      "layout": "Split screen. Left: Form. Right: Immersive image of gold vault with rich dark overlay.",
+      "key_elements": "Tabs for User vs Vendor login."
+    },
+    "user_dashboard": {
+      "layout": "Grid layout.",
+      "widgets": [
+        "Wallet Balance (col-span-1): Large typography, Top Up button.",
+        "Total Gold Value (col-span-1): P&L indicator.",
+        "Gold Price Chart (col-span-2): Live Recharts area chart.",
+        "Holdings Breakdown (col-span-1 md:col-span-2): Donut chart (Recharts).",
+        "Recent Transactions (col-span-full): Dense table."
+      ]
+    },
+    "vendor_dashboard": {
+      "widgets": [
+        "Total Inventory & Active Branches (KPI cards).",
+        "Set Gold Price form (high-visibility card, col-span-1)."
+      ]
+    },
+    "buy_sell_gold": {
+      "layout": "Two-column inside a card. Left: Form to buy/sell (input amount in INR or grams). Right: Order summary & conversion rate."
+    },
+    "physical_gold": {
+      "layout": "Grid of available physical coins/bars with weight, purity, and 'Convert' or 'Buy' action. Includes Address entry form dialog."
+    },
+    "wallet_topup": {
+      "layout": "Dialog/Modal triggered from Wallet widget. Grid of payment method options (UPI, Credit Card, Google Pay, Bank Transfer) styled as selectable dense cards."
+    }
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://images.unsplash.com/photo-1762463176318-3cc33ec64ba2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwzfHxnb2xkJTIwYmFycyUyMHZhdWx0fGVufDB8fHx8MTc3ODkzMjkxMnww&ixlib=rb-4.1.0&q=85",
+        "description": "Gold bars stacked on a dark surface",
+        "category": "login_background",
+        "placement": "Right side of the split-screen login page with a bg-stone-900/50 overlay."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1755728806223-6d21a877248e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwyfHxnb2xkJTIwYmFycyUyMHZhdWx0fGVufDB8fHx8MTc3ODkzMjkxMnww&ixlib=rb-4.1.0&q=85",
+        "description": "Rows of shiny gold bars stacked neatly",
+        "category": "physical_gold_hero",
+        "placement": "Banner at the top of the Physical Gold conversion page."
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1559526324-593bc073d938?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBmaW50ZWNoJTIwYXBwJTIwbGlmZXN0eWxlfGVufDB8fHx8MTc3ODkzMjkxM3ww&ixlib=rb-4.1.0&q=85",
+        "description": "person using phone and laptop computer",
+        "category": "vendor_portal_background",
+        "placement": "Used as a subtle background header image for Vendor profile."
+      }
+    ]
+  },
+  "testing": {
+    "data_testid_rules": "All interactive and key informational elements MUST include a data-testid attribute. Format: kebab-case, role-based. e.g., data-testid='wallet-balance-amount', data-testid='topup-submit-button', data-testid='buy-gold-tab'."
+  },
+  "instructions_to_main_agent": [
+    "Install and use Phosphor Icons (@phosphor-icons/react) for a dense, high-end dashboard feel.",
+    "Install Recharts for Data visualization (Area charts for price, Donut chart for holdings).",
+    "Implement pure HTML/Tailwind for the overarching grid and layouts. Use Shadcn for interactive components (Tables, Dialogs, Select, Tabs, Forms).",
+    "Never use raw HTML inputs/selects for forms, rely heavily on Shadcn Form components to maintain accessibility and consistency.",
+    "For the dashboard metrics, utilize 'The Control Room' grid pattern: grid-cols-1 md:grid-cols-3 lg:grid-cols-4.",
+    "Graphs: Use Recharts. Style the charts with the gold/amber theme defined in the colors section. Avoid default Recharts tooltip styles; build custom HTML tooltips.",
+    "Navigation: Sidebar navigation layout. Sidebar must be dark (bg-stone-950) while main content is light (bg-stone-50) for strong contrast.",
+    "Typography: Apply Cabinet Grotesk for all large numbers and headings. Apply Manrope for data tables and standard body text.",
+    "Spacing: Ensure padding inside cards is generous (p-6) but gap between cards is tight (gap-4 or gap-6)."
+  ]
+}

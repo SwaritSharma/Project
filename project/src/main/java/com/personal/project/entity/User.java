@@ -1,5 +1,6 @@
 package com.personal.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -46,6 +47,10 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @JsonProperty(
+            access =
+                    JsonProperty.Access.WRITE_ONLY
+    )
     @Column(name = "password")
     private String password;
 }

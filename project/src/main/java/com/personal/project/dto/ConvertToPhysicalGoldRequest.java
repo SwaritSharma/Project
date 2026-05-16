@@ -15,14 +15,12 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class ConvertToPhysicalGoldRequest {
 
-    @NotNull(
-            message = "User id is required"
-    )
+    @NotNull(message = "User id is required")
+    @com.fasterxml.jackson.annotation.JsonProperty("user_id")
     private Integer userId;
 
-    @NotNull(
-            message = "Holding id is required"
-    )
+    @NotNull(message = "Holding id is required")
+    @com.fasterxml.jackson.annotation.JsonProperty("holding_id")
     private Integer holdingId;
 
     @NotNull(
@@ -34,8 +32,7 @@ public class ConvertToPhysicalGoldRequest {
     )
     private BigDecimal quantity;
 
-    @NotNull(
-            message = "Delivery address id is required"
-    )
+    @NotNull(message = "Delivery address id is required")
+    @com.fasterxml.jackson.annotation.JsonProperty("delivery_address_id")
     private Integer deliveryAddressId;
 }

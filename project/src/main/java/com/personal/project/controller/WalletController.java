@@ -1,43 +1,24 @@
 package com.personal.project.controller;
 
 import com.personal.project.dto.WalletTopupRequest;
-import com.personal.project.entity.User;
 import com.personal.project.service.WalletService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/wallet")
+@RequiredArgsConstructor
 public class WalletController {
 
-    private final WalletService
-            walletService;
+    private final WalletService walletService;
 
-    public WalletController(
-            WalletService walletService
-    ) {
-
-        this.walletService =
-                walletService;
-    }
-
-    @PostMapping(
-            "/topup"
-    )
-    public ResponseEntity<User>
-    topupWallet(
-            @Valid
-            @RequestBody
-            WalletTopupRequest request
-    ) {
-
-        User updatedUser =
-                walletService
-                        .topupWallet(request);
-
-        return ResponseEntity.ok(
-                updatedUser
-        );
+    @PostMapping("/topup")
+    public ResponseEntity<?> topupWallet(@Valid @RequestBody WalletTopupRequest request) {
+        return ResponseEntity.ok(walletService.topupWallet(request));
     }
 }
