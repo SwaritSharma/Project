@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,9 +35,13 @@ class UserRepositoryTest {
         Address address = new Address();
 
         address.setStreet("Sector 17");
+
         address.setCity(city);
+
         address.setState("Punjab");
+
         address.setPostalCode(postalCode);
+
         address.setCountry("India");
 
         return addressRepository.save(address);
@@ -52,10 +57,20 @@ class UserRepositoryTest {
         User user = new User();
 
         user.setName(name);
+
         user.setEmail(email);
-        user.setPassword("password123");
+
+        user.setPassword(
+                new BCryptPasswordEncoder()
+                        .encode("password123")
+        );
+
         user.setBalance(balance);
-        user.setCreatedAt(LocalDateTime.now());
+
+        user.setCreatedAt(
+                LocalDateTime.now()
+        );
+
         user.setAddress(address);
 
         return userRepository.save(user);
