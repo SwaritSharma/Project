@@ -5,15 +5,21 @@ on:
     branches:
       - dev
       - main
+      - feature/Digital-Gold-Wallet
 
   pull_request:
     branches:
       - dev
       - main
+      - feature/Digital-Gold-Wallet
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: project
 
     steps:
       - name: Checkout Repository
