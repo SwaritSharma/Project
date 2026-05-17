@@ -118,6 +118,21 @@ public class VendorDashboardService {
         branch.setQuantity(request.getInitialQuantity());
         branch = vendorBranchRepository.save(branch);
 
+        if (request.getInitialQuantity() != null && request.getInitialQuantity().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal currentVendorQty = vendor.getTotalGoldQuantity() != null ? vendor.getTotalGoldQuantity() : BigDecimal.ZERO;
+            vendor.setTotalGoldQuantity(currentVendorQty.add(request.getInitialQuantity()));
+            vendorRepository.save(vendor);
+
+            TransactionHistory th = new TransactionHistory();
+            th.setBranch(branch);
+            th.setQuantity(request.getInitialQuantity());
+            th.setAmount(BigDecimal.ZERO);
+            th.setTransactionType("Add Inventory");
+            th.setTransactionStatus("Success");
+            th.setCreatedAt(LocalDateTime.now());
+            transactionRepository.save(th);
+        }
+
         VendorBranchDTO dto = new VendorBranchDTO();
         dto.setBranchId(branch.getBranchId());
         dto.setQuantity(branch.getQuantity());
@@ -192,11 +207,13 @@ public class VendorDashboardService {
             throw new RuntimeException("Branch does not belong to this vendor");
         }
         
-        branch.setQuantity(branch.getQuantity().add(quantity));
+        BigDecimal currentBranchQty = branch.getQuantity() != null ? branch.getQuantity() : BigDecimal.ZERO;
+        branch.setQuantity(currentBranchQty.add(quantity));
         vendorBranchRepository.save(branch);
         
         Vendor vendor = branch.getVendor();
-        vendor.setTotalGoldQuantity(vendor.getTotalGoldQuantity().add(quantity));
+        BigDecimal currentVendorQty = vendor.getTotalGoldQuantity() != null ? vendor.getTotalGoldQuantity() : BigDecimal.ZERO;
+        vendor.setTotalGoldQuantity(currentVendorQty.add(quantity));
         vendorRepository.save(vendor);
         
         TransactionHistory th = new TransactionHistory();
