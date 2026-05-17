@@ -10,6 +10,7 @@ export default function Transactions() {
     const [txns, setTxns] = useState([]);
     const [payments, setPayments] = useState([]);
     const [q, setQ] = useState("");
+    const [sortOrder, setSortOrder] = useState("newest");
     const [tab, setTab] = useState("txns");
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 10;
@@ -28,19 +29,42 @@ export default function Transactions() {
     }, [load]);
 
     const filteredTxns = useMemo(() => {
-        const term = q.toLowerCase();
-        if (!term) return txns;
-        return txns.filter(
-            (t) =>
-                t.vendor_name.toLowerCase().includes(term) ||
-                t.transaction_type.toLowerCase().includes(term) ||
-                t.transaction_status.toLowerCase().includes(term),
-        );
-    }, [txns, q]);
+        let res = [...txns];
+        if (q) {
+            const term = q.toLowerCase();
+            res = res.filter(
+                (t) =>
+                    t.vendor_name.toLowerCase().includes(term) ||
+                    t.transaction_type.toLowerCase().includes(term) ||
+                    t.transaction_status.toLowerCase().includes(term),
+            );
+        }
+        if (sortOrder === "amount-high") res.sort((a, b) => b.amount - a.amount);
+        else if (sortOrder === "amount-low") res.sort((a, b) => a.amount - b.amount);
+        else res.sort((a, b) => b.transaction_id - a.transaction_id);
+        return res;
+    }, [txns, q, sortOrder]);
+
+    const filteredPayments = useMemo(() => {
+        let res = [...payments];
+        if (q) {
+            const term = q.toLowerCase();
+            res = res.filter(
+                (p) =>
+                    p.payment_method.toLowerCase().includes(term) ||
+                    p.payment_status.toLowerCase().includes(term) ||
+                    p.transaction_type.toLowerCase().includes(term)
+            );
+        }
+        if (sortOrder === "amount-high") res.sort((a, b) => b.amount - a.amount);
+        else if (sortOrder === "amount-low") res.sort((a, b) => a.amount - b.amount);
+        else res.sort((a, b) => b.payment_id - a.payment_id);
+        return res;
+    }, [payments, q, sortOrder]);
 
     useEffect(() => {
         setPage(1);
-    }, [tab, q]);
+    }, [tab, q, sortOrder]);
 
     const paginatedTxns = useMemo(() => {
         const start = (page - 1) * PAGE_SIZE;
@@ -49,12 +73,12 @@ export default function Transactions() {
 
     const paginatedPayments = useMemo(() => {
         const start = (page - 1) * PAGE_SIZE;
-        return payments.slice(start, start + PAGE_SIZE);
-    }, [payments, page]);
+        return filteredPayments.slice(start, start + PAGE_SIZE);
+    }, [filteredPayments, page]);
 
     const totalPages = tab === "txns" 
         ? Math.ceil(filteredTxns.length / PAGE_SIZE) 
-        : Math.ceil(payments.length / PAGE_SIZE);
+        : Math.ceil(filteredPayments.length / PAGE_SIZE);
 
     return (
         <div data-testid="transactions-page">
@@ -63,15 +87,26 @@ export default function Transactions() {
                 title="Transactions & Payments"
                 subtitle="Immutable audit log · Sorted by latest"
                 actions={
-                    <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            placeholder="Search vendor, type, status…"
-                            value={q}
-                            onChange={(e) => setQ(e.target.value)}
-                            className="pl-9 w-72"
-                            data-testid="transactions-search"
-                        />
+                    <div className="flex gap-2">
+                        <div className="relative">
+                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search vendor, type, status…"
+                                value={q}
+                                onChange={(e) => setQ(e.target.value)}
+                                className="pl-9 w-64"
+                                data-testid="transactions-search"
+                            />
+                        </div>
+                        <select
+                            className="flex h-10 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value)}
+                        >
+                            <option value="newest">Newest First</option>
+                            <option value="amount-high">Amount: High to Low</option>
+                            <option value="amount-low">Amount: Low to High</option>
+                        </select>
                     </div>
                 }
             />
@@ -147,7 +182,7 @@ export default function Transactions() {
                         </table>
                     </Card>
                 )
-            ) : payments.length === 0 ? (
+            ) : filteredPayments.length === 0 ? (
                 <EmptyState
                     icon={CreditCard}
                     title="No payments yet"

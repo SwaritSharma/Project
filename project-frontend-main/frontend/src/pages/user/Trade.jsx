@@ -108,6 +108,43 @@ function BuyForm({ vendors, balance, userId, onDone }) {
     const [qty, setQty] = useState("");
     const [busy, setBusy] = useState(false);
 
+    const [q, setQ] = useState("");
+    const [sortOrder, setSortOrder] = useState("newest");
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 6;
+
+    const filteredVendors = useMemo(() => {
+        let res = [...vendors];
+        if (q) {
+            const term = q.toLowerCase();
+            res = res.filter(
+                (v) =>
+                    v.vendor_name.toLowerCase().includes(term) ||
+                    (v.description && v.description.toLowerCase().includes(term))
+            );
+        }
+        
+        if (sortOrder === "price-high") {
+            res.sort((a, b) => b.current_gold_price - a.current_gold_price);
+        } else if (sortOrder === "price-low") {
+            res.sort((a, b) => a.current_gold_price - b.current_gold_price);
+        } else {
+            res.sort((a, b) => b.vendor_id - a.vendor_id);
+        }
+        return res;
+    }, [vendors, q, sortOrder]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [q, sortOrder]);
+
+    const paginatedVendors = useMemo(() => {
+        const start = (page - 1) * PAGE_SIZE;
+        return filteredVendors.slice(start, start + PAGE_SIZE);
+    }, [filteredVendors, page]);
+
+    const totalPages = Math.ceil(filteredVendors.length / PAGE_SIZE);
+
     const vendor = useMemo(
         () => vendors.find((v) => String(v.vendor_id) === vendorId),
         [vendors, vendorId],
@@ -145,11 +182,30 @@ function BuyForm({ vendors, balance, userId, onDone }) {
         >
             <Card className="lg:col-span-2 space-y-5">
                 <div>
+                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                        <div className="relative flex-1">
+                            <Input
+                                placeholder="Search refiners…"
+                                value={q}
+                                onChange={(e) => setQ(e.target.value)}
+                                className="w-full sm:max-w-xs"
+                            />
+                        </div>
+                        <select
+                            className="flex h-10 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value)}
+                        >
+                            <option value="newest">Newest First</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                        </select>
+                    </div>
                     <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
                         Step 1 · Choose vendor
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {vendors.map((v) => {
+                        {paginatedVendors.map((v) => {
                             const active = String(v.vendor_id) === vendorId;
                             return (
                                 <button
@@ -199,6 +255,32 @@ function BuyForm({ vendors, balance, userId, onDone }) {
                             );
                         })}
                     </div>
+
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between mt-4">
+                            <div className="text-xs text-muted-foreground">
+                                Page {page} of {totalPages}
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    disabled={page === 1}
+                                    onClick={() => setPage(p => p - 1)}
+                                    className="px-2 py-1 rounded-md text-xs border border-border bg-secondary/50 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition"
+                                >
+                                    Prev
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={page === totalPages}
+                                    onClick={() => setPage(p => p + 1)}
+                                    className="px-2 py-1 rounded-md text-xs border border-border bg-secondary/50 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div>

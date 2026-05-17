@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { api, fmtINR, fmtGrams } from "@/lib/api";
-import { Card, PageHeader, Button, Badge, EmptyState } from "@/components/ui-kit";
+import { Card, PageHeader, Button, Badge, EmptyState, Input } from "@/components/ui-kit";
 import { Link } from "react-router-dom";
 import { Coins, MapPin, ArrowLeftRight, Boxes } from "lucide-react";
 
@@ -9,6 +9,11 @@ export default function Holdings() {
     const { user } = useAuth();
     const [holdings, setHoldings] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const [q, setQ] = useState("");
+    const [sortOrder, setSortOrder] = useState("newest");
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 6;
 
     const load = useCallback(async () => {
         const { data } = await api.get(`/users/${user.user_id}/holdings`);
@@ -20,6 +25,38 @@ export default function Holdings() {
         load();
     }, [load]);
 
+    const filteredHoldings = useMemo(() => {
+        let res = [...holdings];
+        if (q) {
+            const term = q.toLowerCase();
+            res = res.filter(
+                (h) =>
+                    h.vendor_name.toLowerCase().includes(term) ||
+                    h.branch_address.city.toLowerCase().includes(term)
+            );
+        }
+        
+        if (sortOrder === "value-high") {
+            res.sort((a, b) => b.value - a.value);
+        } else if (sortOrder === "value-low") {
+            res.sort((a, b) => a.value - b.value);
+        } else {
+            res.sort((a, b) => b.holding_id - a.holding_id);
+        }
+        return res;
+    }, [holdings, q, sortOrder]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [q, sortOrder]);
+
+    const paginatedHoldings = useMemo(() => {
+        const start = (page - 1) * PAGE_SIZE;
+        return filteredHoldings.slice(start, start + PAGE_SIZE);
+    }, [filteredHoldings, page]);
+
+    const totalPages = Math.ceil(filteredHoldings.length / PAGE_SIZE);
+
     return (
         <div data-testid="holdings-page">
             <PageHeader
@@ -27,13 +64,37 @@ export default function Holdings() {
                 title="Your Gold Holdings"
                 subtitle="Vault-grade custody · 999.9 purity"
                 actions={
-                    <Link to="/app/trade">
-                        <Button variant="primary" size="lg" data-testid="buy-more-gold-btn">
-                            <Coins className="w-4 h-4" /> Buy More Gold
-                        </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                        <Link to="/app/trade">
+                            <Button variant="primary" size="lg" data-testid="buy-more-gold-btn">
+                                <Coins className="w-4 h-4" /> Buy More Gold
+                            </Button>
+                        </Link>
+                    </div>
                 }
             />
+
+            {!loading && holdings.length > 0 && (
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                    <div className="relative flex-1">
+                        <Input
+                            placeholder="Search by vendor or city…"
+                            value={q}
+                            onChange={(e) => setQ(e.target.value)}
+                            className="w-full sm:max-w-xs"
+                        />
+                    </div>
+                    <select
+                        className="flex h-10 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value)}
+                    >
+                        <option value="newest">Newest First</option>
+                        <option value="value-high">Value: High to Low</option>
+                        <option value="value-low">Value: Low to High</option>
+                    </select>
+                </div>
+            )}
 
             {loading ? (
                 <div className="text-sm text-muted-foreground">Loading…</div>
@@ -53,7 +114,7 @@ export default function Holdings() {
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 stagger"
                     data-testid="holdings-grid"
                 >
-                    {holdings.map((h) => (
+                    {paginatedHoldings.map((h) => (
                         <Card
                             key={h.holding_id}
                             data-testid={`holding-card-${h.holding_id}`}
@@ -121,6 +182,30 @@ export default function Holdings() {
                             </div>
                         </Card>
                     ))}
+                </div>
+            )}
+            
+            {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6">
+                    <div className="text-sm text-muted-foreground">
+                        Showing page {page} of {totalPages}
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            disabled={page === 1}
+                            onClick={() => setPage(p => p - 1)}
+                            className="px-3 py-1.5 rounded-md text-sm border border-border bg-secondary/50 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition"
+                        >
+                            Previous
+                        </button>
+                        <button
+                            disabled={page === totalPages}
+                            onClick={() => setPage(p => p + 1)}
+                            className="px-3 py-1.5 rounded-md text-sm border border-border bg-secondary/50 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition"
+                        >
+                            Next
+                        </button>
+                    </div>
                 </div>
             )}
         </div>

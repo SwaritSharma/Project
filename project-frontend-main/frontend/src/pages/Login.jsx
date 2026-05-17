@@ -248,6 +248,12 @@ export default function Login() {
                                                 <input name="description" type="text" placeholder="Premium Gold Dealer" className="flex-1 bg-transparent outline-none text-sm" />
                                             </div>
                                         </Field>
+                                        <Field label="Website URL (Optional)">
+                                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
+                                                <Globe className="w-4 h-4 text-muted-foreground" />
+                                                <input name="websiteUrl" type="url" placeholder="https://example.com" className="flex-1 bg-transparent outline-none text-sm" />
+                                            </div>
+                                        </Field>
                                     </>
                                 )}
 
@@ -279,12 +285,6 @@ export default function Login() {
                                         </div>
                                     </Field>
                                 </div>
-                                <Field label="Website URL (Optional)">
-                                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
-                                        <Globe className="w-4 h-4 text-muted-foreground" />
-                                        <input name="websiteUrl" type="url" placeholder="https://example.com" className="flex-1 bg-transparent outline-none text-sm" />
-                                    </div>
-                                </Field>
                             </>
                         )}
 
