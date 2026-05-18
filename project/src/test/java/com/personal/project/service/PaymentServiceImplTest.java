@@ -1,8 +1,10 @@
 package com.personal.project.service;
 
+import com.personal.project.service.impl.PaymentServiceImpl;
 import com.personal.project.constants.PaymentConstants;
 import com.personal.project.entity.Payment;
 import com.personal.project.entity.User;
+import com.personal.project.mapper.PaymentMapper;
 import com.personal.project.repository.PaymentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,10 @@ class PaymentServiceImplTest {
     private PaymentRepository
             paymentRepository;
 
+    @Mock
+    private PaymentMapper
+            paymentMapper;
+
     @InjectMocks
     private PaymentServiceImpl
             paymentService;
@@ -39,6 +45,8 @@ class PaymentServiceImplTest {
 
     @Test
     void createWalletCreditEntry_ShouldCreateSuccessfully() {
+
+        stubPaymentMapper();
 
         when(
                 paymentRepository.save(
@@ -96,10 +104,20 @@ class PaymentServiceImplTest {
                 .save(
                         any(Payment.class)
                 );
+        verify(paymentMapper).toEntity(
+                eq(user),
+                eq(new BigDecimal("5000")),
+                eq(PaymentConstants.BANK_TRANSFER),
+                eq(PaymentConstants.CREDITED_TO_WALLET),
+                eq(PaymentConstants.SUCCESS),
+                any()
+        );
     }
 
     @Test
     void createWalletDebitEntry_ShouldCreateSuccessfully() {
+
+        stubPaymentMapper();
 
         when(
                 paymentRepository.save(
@@ -157,5 +175,34 @@ class PaymentServiceImplTest {
                 .save(
                         any(Payment.class)
                 );
+        verify(paymentMapper).toEntity(
+                eq(user),
+                eq(new BigDecimal("3000")),
+                eq(PaymentConstants.BANK_TRANSFER),
+                eq(PaymentConstants.DEBITED_FROM_WALLET),
+                eq(PaymentConstants.SUCCESS),
+                any()
+        );
+    }
+
+    private void stubPaymentMapper() {
+        when(
+                paymentMapper.toEntity(
+                        any(User.class),
+                        any(BigDecimal.class),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any()
+                )
+        ).thenAnswer(invocation -> new Payment(
+                null,
+                invocation.getArgument(0),
+                invocation.getArgument(1),
+                invocation.getArgument(2),
+                invocation.getArgument(3),
+                invocation.getArgument(4),
+                invocation.getArgument(5)
+        ));
     }
 }

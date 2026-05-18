@@ -2,6 +2,9 @@ package com.personal.project.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.personal.project.dto.LoginRequest;
+import com.personal.project.mapper.AddressMapper;
+import com.personal.project.mapper.VendorBranchMapper;
+import com.personal.project.mapper.VendorMapper;
 import com.personal.project.security.jwt.JwtService;
 import com.personal.project.security.service.CustomUserDetailsService;
 import com.personal.project.security.service.VendorUserDetailsService;
@@ -23,6 +26,7 @@ import com.personal.project.entity.Vendor;
 import java.util.Optional;
 
 import static org.mockito.Mockito.when;
+import static org.hamcrest.Matchers.nullValue;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -66,6 +70,15 @@ class VendorAuthControllerTest {
 
     @MockitoBean
     private GoldPriceService goldPriceService;
+
+    @MockitoBean
+    private VendorMapper vendorMapper;
+
+    @MockitoBean
+    private AddressMapper addressMapper;
+
+    @MockitoBean
+    private VendorBranchMapper vendorBranchMapper;
 
     @Test
     void shouldLoginVendorSuccessfully()
@@ -146,7 +159,9 @@ class VendorAuthControllerTest {
                                 .value(
                                         "mocked-vendor-jwt-token"
                                 )
-                );
+                )
+                .andExpect(jsonPath("$.vendor_id").value(1))
+                .andExpect(jsonPath("$.user_id").value(nullValue()));
     }
 
     @Test

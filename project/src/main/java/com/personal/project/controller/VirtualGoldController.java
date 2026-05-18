@@ -1,7 +1,10 @@
 package com.personal.project.controller;
 
 import com.personal.project.dto.BuyVirtualGoldRequest;
+import com.personal.project.dto.HoldingDTO;
 import com.personal.project.dto.SellVirtualGoldRequest;
+import com.personal.project.mapper.HoldingMapper;
+import com.personal.project.service.GoldPriceService;
 import com.personal.project.service.VirtualGoldService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,14 +20,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class VirtualGoldController {
 
     private final VirtualGoldService virtualGoldService;
+    private final HoldingMapper holdingMapper;
+    private final GoldPriceService goldPriceService;
 
     @PostMapping("/buy")
-    public ResponseEntity<?> buyVirtualGold(@Valid @RequestBody BuyVirtualGoldRequest request) {
-        return ResponseEntity.ok(virtualGoldService.buyVirtualGold(request));
+    public ResponseEntity<HoldingDTO> buyVirtualGold(@Valid @RequestBody BuyVirtualGoldRequest request) {
+        return ResponseEntity.ok(holdingMapper.toDto(
+                virtualGoldService.buyVirtualGold(request),
+                goldPriceService.getCurrentPrice().getPrice()
+        ));
     }
 
     @PostMapping("/sell")
-    public ResponseEntity<?> sellVirtualGold(@Valid @RequestBody SellVirtualGoldRequest request) {
-        return ResponseEntity.ok(virtualGoldService.sellVirtualGold(request));
+    public ResponseEntity<HoldingDTO> sellVirtualGold(@Valid @RequestBody SellVirtualGoldRequest request) {
+        return ResponseEntity.ok(holdingMapper.toDto(
+                virtualGoldService.sellVirtualGold(request),
+                goldPriceService.getCurrentPrice().getPrice()
+        ));
     }
 }

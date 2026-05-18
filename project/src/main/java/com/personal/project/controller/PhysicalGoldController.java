@@ -2,6 +2,8 @@ package com.personal.project.controller;
 
 import com.personal.project.dto.BuyPhysicalGoldRequest;
 import com.personal.project.dto.ConvertToPhysicalGoldRequest;
+import com.personal.project.dto.PhysicalGoldDTO;
+import com.personal.project.mapper.PhysicalGoldMapper;
 import com.personal.project.service.PhysicalGoldService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,14 +19,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class PhysicalGoldController {
 
     private final PhysicalGoldService physicalGoldService;
+    private final PhysicalGoldMapper physicalGoldMapper;
 
     @PostMapping("/buy")
-    public ResponseEntity<?> buyPhysicalGold(@Valid @RequestBody BuyPhysicalGoldRequest request) {
-        return ResponseEntity.ok(physicalGoldService.buyPhysicalGold(request));
+    public ResponseEntity<PhysicalGoldDTO> buyPhysicalGold(@Valid @RequestBody BuyPhysicalGoldRequest request) {
+        return ResponseEntity.ok(physicalGoldMapper.toDto(physicalGoldService.buyPhysicalGold(request)));
     }
 
     @PostMapping("/convert")
-    public ResponseEntity<?> convertToPhysicalGold(@Valid @RequestBody ConvertToPhysicalGoldRequest request) {
-        return ResponseEntity.ok(physicalGoldService.convertToPhysicalGold(request));
+    public ResponseEntity<PhysicalGoldDTO> convertToPhysicalGold(@Valid @RequestBody ConvertToPhysicalGoldRequest request) {
+        return ResponseEntity.ok(physicalGoldMapper.toDto(physicalGoldService.convertToPhysicalGold(request)));
     }
 }

@@ -3,6 +3,7 @@ package com.personal.project.security.filter;
 import com.personal.project.security.jwt.JwtService;
 import com.personal.project.security.service.CustomUserDetailsService;
 import com.personal.project.security.service.VendorUserDetailsService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
@@ -85,8 +87,14 @@ public class JwtAuthenticationFilter
         jwt =
                 authHeader.substring(7);
 
-        email =
-                jwtService.extractUsername(jwt);
+        try {
+            email =
+                    jwtService.extractUsername(jwt);
+        } catch (JwtException | IllegalArgumentException ex) {
+            SecurityContextHolder.clearContext();
+            writeUnauthorizedResponse(request, response, "Invalid or expired JWT token");
+            return;
+        }
 
         if (
                 email != null
@@ -118,12 +126,20 @@ public class JwtAuthenticationFilter
                                 );
             }
 
-            if (
-                    jwtService.isTokenValid(
-                            jwt,
-                            userDetails
-                    )
-            ) {
+            boolean tokenValid;
+
+            try {
+                tokenValid = jwtService.isTokenValid(
+                        jwt,
+                        userDetails
+                );
+            } catch (JwtException | IllegalArgumentException ex) {
+                SecurityContextHolder.clearContext();
+                writeUnauthorizedResponse(request, response, "Invalid or expired JWT token");
+                return;
+            }
+
+            if (tokenValid) {
 
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
@@ -148,6 +164,26 @@ public class JwtAuthenticationFilter
         filterChain.doFilter(
                 request,
                 response
+        );
+    }
+
+
+    private void writeUnauthorizedResponse(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            String message
+    ) throws IOException {
+
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(
+                "{\"timestamp\":\"" + LocalDateTime.now() + "\","
+                        + "\"status\":401,"
+                        + "\"error\":\"Unauthorized\","
+                        + "\"message\":\"" + message + "\","
+                        + "\"details\":[\"" + message + "\"],"
+                        + "\"path\":\"" + request.getRequestURI() + "\"}"
         );
     }
 }

@@ -1,31 +1,44 @@
-package com.personal.project.service;
+package com.personal.project.service.impl;
+
+import com.personal.project.service.VirtualGoldService;
+import com.personal.project.service.BranchAllocationService;
+import com.personal.project.service.TransactionHistoryService;
+import com.personal.project.service.PaymentService;
 
 import com.personal.project.constants.PaymentConstants;
 import com.personal.project.constants.TransactionConstants;
-import com.personal.project.dto.BuyPhysicalGoldRequest;
-import com.personal.project.dto.ConvertToPhysicalGoldRequest;
-import com.personal.project.entity.Address;
-import com.personal.project.entity.PhysicalGoldTransaction;
+import com.personal.project.dto.BuyVirtualGoldRequest;
+import com.personal.project.dto.SellVirtualGoldRequest;
 import com.personal.project.entity.User;
 import com.personal.project.entity.Vendor;
 import com.personal.project.entity.VendorBranch;
 import com.personal.project.entity.VirtualGoldHolding;
 import com.personal.project.exception.*;
-import com.personal.project.repository.AddressRepository;
-import com.personal.project.repository.PhysicalGoldTransactionRepository;
+import com.personal.project.mapper.HoldingMapper;
 import com.personal.project.repository.UserRepository;
 import com.personal.project.repository.VendorBranchRepository;
 import com.personal.project.repository.VendorRepository;
 import com.personal.project.repository.VirtualGoldHoldingRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import static com.personal.project.config.RedisCacheConfig.USER_DASHBOARD_CACHE;
+import static com.personal.project.config.RedisCacheConfig.USER_HOLDINGS_CACHE;
+import static com.personal.project.config.RedisCacheConfig.USER_PAYMENTS_CACHE;
+import static com.personal.project.config.RedisCacheConfig.USER_TRANSACTIONS_CACHE;
+import static com.personal.project.config.RedisCacheConfig.VENDOR_BRANCHES_CACHE;
+import static com.personal.project.config.RedisCacheConfig.VENDOR_DASHBOARD_CACHE;
+import static com.personal.project.config.RedisCacheConfig.VENDOR_TRANSACTIONS_CACHE;
+import static com.personal.project.config.RedisCacheConfig.VENDORS_CACHE;
+
 @Service
-public class PhysicalGoldServiceImpl
-        implements PhysicalGoldService {
+public class VirtualGoldServiceImpl
+        implements VirtualGoldService {
 
     private final UserRepository
             userRepository;
@@ -36,19 +49,10 @@ public class PhysicalGoldServiceImpl
     private final VendorBranchRepository
             vendorBranchRepository;
 
-    private final AddressRepository
-            addressRepository;
-
-    private final
-    VirtualGoldHoldingRepository
+    private final VirtualGoldHoldingRepository
             holdingRepository;
 
-    private final
-    PhysicalGoldTransactionRepository
-            physicalGoldTransactionRepository;
-
-    private final
-    BranchAllocationService
+    private final BranchAllocationService
             branchAllocationService;
 
     private final PaymentService
@@ -58,22 +62,22 @@ public class PhysicalGoldServiceImpl
     TransactionHistoryService
             transactionHistoryService;
 
-    public PhysicalGoldServiceImpl(
+    private final HoldingMapper
+            holdingMapper;
+
+    public VirtualGoldServiceImpl(
             UserRepository userRepository,
             VendorRepository vendorRepository,
             VendorBranchRepository
                     vendorBranchRepository,
-            AddressRepository
-                    addressRepository,
             VirtualGoldHoldingRepository
                     holdingRepository,
-            PhysicalGoldTransactionRepository
-                    physicalGoldTransactionRepository,
             BranchAllocationService
                     branchAllocationService,
             PaymentService paymentService,
             TransactionHistoryService
-                    transactionHistoryService
+                    transactionHistoryService,
+            HoldingMapper holdingMapper
     ) {
 
         this.userRepository =
@@ -85,14 +89,8 @@ public class PhysicalGoldServiceImpl
         this.vendorBranchRepository =
                 vendorBranchRepository;
 
-        this.addressRepository =
-                addressRepository;
-
         this.holdingRepository =
                 holdingRepository;
-
-        this.physicalGoldTransactionRepository =
-                physicalGoldTransactionRepository;
 
         this.branchAllocationService =
                 branchAllocationService;
@@ -102,155 +100,25 @@ public class PhysicalGoldServiceImpl
 
         this.transactionHistoryService =
                 transactionHistoryService;
+
+        this.holdingMapper =
+                holdingMapper;
     }
 
     @Override
     @Transactional
-    public PhysicalGoldTransaction
-    buyPhysicalGold(
-            BuyPhysicalGoldRequest request
+    @Caching(evict = {
+            @CacheEvict(cacheNames = {USER_DASHBOARD_CACHE, USER_HOLDINGS_CACHE, USER_TRANSACTIONS_CACHE, USER_PAYMENTS_CACHE}, key = "#request.userId"),
+            @CacheEvict(cacheNames = {VENDOR_DASHBOARD_CACHE, VENDOR_BRANCHES_CACHE, VENDOR_TRANSACTIONS_CACHE, VENDORS_CACHE}, key = "#request.vendorId")
+    })
+    public VirtualGoldHolding
+    buyVirtualGold(
+            BuyVirtualGoldRequest request
     ) {
 
-        if (
-                request.getQuantity()
-                        .compareTo(BigDecimal.ZERO)
-                        <= 0
-        ) {
-
-            throw new InvalidQuantityException(
-                    "Quantity must be greater than 0"
-            );
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
         }
-
-        User user =
-                userRepository
-                        .findById(
-                                request.getUserId()
-                        )
-                        .orElseThrow(
-                                () ->
-                                        new UserNotFoundException(
-                                                "User not found"
-                                        )
-                        );
-
-        Vendor vendor =
-                vendorRepository
-                        .findById(
-                                request.getVendorId()
-                        )
-                        .orElseThrow(
-                                () ->
-                                        new VendorNotFoundException(
-                                                "Vendor not found"
-                                        )
-                        );
-
-        Address deliveryAddress =
-                addressRepository
-                        .findById(
-                                request.getDeliveryAddressId()
-                        )
-                        .orElseThrow(
-                                () ->
-                                        new AddressNotFoundException(
-                                                "Delivery address not found"
-                                        )
-                        );
-
-        VendorBranch allocatedBranch =
-                branchAllocationService
-                        .allocateBranch(
-                                vendor.getVendorId(),
-                                deliveryAddress
-                                        .getAddressId(),
-                                request.getQuantity()
-                        );
-
-        BigDecimal totalAmount =
-                vendor.getCurrentGoldPrice()
-                        .multiply(
-                                request.getQuantity()
-                        );
-
-        if (
-                user.getBalance()
-                        .compareTo(totalAmount)
-                        < 0
-        ) {
-
-            throw new InsufficientWalletBalanceException(
-                    "Insufficient wallet balance"
-            );
-        }
-
-        user.setBalance(
-                user.getBalance()
-                        .subtract(totalAmount)
-        );
-
-        allocatedBranch.setQuantity(
-                allocatedBranch.getQuantity()
-                        .subtract(
-                                request.getQuantity()
-                        )
-        );
-
-        PhysicalGoldTransaction
-                transaction =
-                new PhysicalGoldTransaction();
-
-        transaction.setUser(user);
-
-        transaction.setBranch(
-                allocatedBranch
-        );
-
-        transaction.setQuantity(
-                request.getQuantity()
-        );
-
-        transaction.setDeliveryAddress(
-                deliveryAddress
-        );
-
-        transaction.setCreatedAt(
-                LocalDateTime.now()
-        );
-
-        paymentService
-                .createWalletDebitEntry(
-                        user,
-                        totalAmount,
-                        PaymentConstants
-                                .BANK_TRANSFER,
-                        PaymentConstants.SUCCESS
-                );
-
-        transactionHistoryService
-                .createBuyTransaction(
-                        user,
-                        allocatedBranch,
-                        request.getQuantity(),
-                        totalAmount,
-                        TransactionConstants.SUCCESS
-                );
-
-        userRepository.save(user);
-
-        vendorBranchRepository
-                .save(allocatedBranch);
-
-        return physicalGoldTransactionRepository
-                .save(transaction);
-    }
-
-    @Override
-    @Transactional
-    public PhysicalGoldTransaction
-    convertToPhysicalGold(
-            ConvertToPhysicalGoldRequest request
-    ) {
 
         if (
                 request.getQuantity()
@@ -282,6 +150,147 @@ public class PhysicalGoldServiceImpl
             );
         }
 
+        Vendor vendor =
+                vendorRepository
+                        .findById(
+                                request.getVendorId()
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new VendorNotFoundException(
+                                                "Vendor not found"
+                                        )
+                        );
+
+        VendorBranch allocatedBranch =
+                branchAllocationService
+                        .allocateBranch(
+                                vendor.getVendorId(),
+                                user.getAddress()
+                                        .getAddressId(),
+                                request.getQuantity()
+                        );
+
+        BigDecimal totalAmount =
+                allocatedBranch
+                        .getVendor()
+                        .getCurrentGoldPrice()
+                        .multiply(
+                                request.getQuantity()
+                        );
+
+        if (
+                (user.getBalance() != null ? user.getBalance() : BigDecimal.ZERO)
+                        .compareTo(totalAmount)
+                        < 0
+        ) {
+
+            throw new InsufficientWalletBalanceException(
+                    "Insufficient wallet balance"
+            );
+        }
+
+        user.setBalance(
+                (user.getBalance() != null ? user.getBalance() : BigDecimal.ZERO)
+                        .subtract(totalAmount)
+        );
+
+        allocatedBranch.setQuantity(
+                allocatedBranch.getQuantity()
+                        .subtract(
+                                request.getQuantity()
+                        )
+        );
+
+        VirtualGoldHolding holding =
+                holdingRepository
+                        .findByUserUserIdAndBranchBranchId(
+                                user.getUserId(),
+                                allocatedBranch
+                                        .getBranchId()
+                        )
+                        .orElse(null);
+
+        if (holding == null) {
+
+            holding = holdingMapper.toEntity(user, allocatedBranch, request.getQuantity(), LocalDateTime.now());
+        }
+
+        else {
+
+            holding.setQuantity(
+                    holding.getQuantity()
+                            .add(
+                                    request.getQuantity()
+                            )
+            );
+        }
+
+        paymentService
+                .createWalletDebitEntry(
+                        user,
+                        totalAmount,
+                        PaymentConstants
+                                .BANK_TRANSFER,
+                        PaymentConstants.SUCCESS
+                );
+
+        transactionHistoryService
+                .createBuyTransaction(
+                        user,
+                        allocatedBranch,
+                        request.getQuantity(),
+                        totalAmount,
+                        TransactionConstants.SUCCESS
+                );
+
+        userRepository.save(user);
+
+        vendorBranchRepository
+                .save(allocatedBranch);
+
+        return holdingRepository
+                .save(holding);
+    }
+
+    @Override
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = {USER_DASHBOARD_CACHE, USER_HOLDINGS_CACHE, USER_TRANSACTIONS_CACHE, USER_PAYMENTS_CACHE}, key = "#request.userId"),
+            @CacheEvict(cacheNames = {VENDOR_DASHBOARD_CACHE, VENDOR_BRANCHES_CACHE, VENDOR_TRANSACTIONS_CACHE, VENDORS_CACHE}, allEntries = true)
+    })
+    public VirtualGoldHolding
+    sellVirtualGold(
+            SellVirtualGoldRequest request
+    ) {
+
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
+        }
+
+        if (
+                request.getQuantity()
+                        .compareTo(BigDecimal.ZERO)
+                        <= 0
+        ) {
+
+            throw new InvalidQuantityException(
+                    "Quantity must be greater than 0"
+            );
+        }
+
+        User user =
+                userRepository
+                        .findById(
+                                request.getUserId()
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new UserNotFoundException(
+                                                "User not found"
+                                        )
+                        );
+
         VirtualGoldHolding holding =
                 holdingRepository
                         .findById(
@@ -307,18 +316,6 @@ public class PhysicalGoldServiceImpl
             );
         }
 
-        Address deliveryAddress =
-                addressRepository
-                        .findById(
-                                request.getDeliveryAddressId()
-                        )
-                        .orElseThrow(
-                                () ->
-                                        new AddressNotFoundException(
-                                                "Delivery address not found"
-                                        )
-                        );
-
         if (
                 holding.getQuantity()
                         .compareTo(
@@ -332,20 +329,24 @@ public class PhysicalGoldServiceImpl
             );
         }
 
-        VendorBranch allocatedBranch =
-                branchAllocationService
-                        .allocateBranch(
-                                holding.getBranch()
-                                        .getVendor()
-                                        .getVendorId(),
-                                deliveryAddress
-                                        .getAddressId(),
+        VendorBranch branch =
+                holding.getBranch();
+
+        BigDecimal totalAmount =
+                branch.getVendor()
+                        .getCurrentGoldPrice()
+                        .multiply(
                                 request.getQuantity()
                         );
 
-        allocatedBranch.setQuantity(
-                allocatedBranch.getQuantity()
-                        .subtract(
+        user.setBalance(
+                (user.getBalance() != null ? user.getBalance() : BigDecimal.ZERO)
+                        .add(totalAmount)
+        );
+
+        branch.setQuantity(
+                branch.getQuantity()
+                        .add(
                                 request.getQuantity()
                         )
         );
@@ -357,47 +358,28 @@ public class PhysicalGoldServiceImpl
                         )
         );
 
-        BigDecimal totalAmount =
-                allocatedBranch
-                        .getVendor()
-                        .getCurrentGoldPrice()
-                        .multiply(
-                                request.getQuantity()
-                        );
-
-        PhysicalGoldTransaction
-                transaction =
-                new PhysicalGoldTransaction();
-
-        transaction.setUser(user);
-
-        transaction.setBranch(
-                allocatedBranch
-        );
-
-        transaction.setQuantity(
-                request.getQuantity()
-        );
-
-        transaction.setDeliveryAddress(
-                deliveryAddress
-        );
-
-        transaction.setCreatedAt(
-                LocalDateTime.now()
-        );
+        paymentService
+                .createWalletCreditEntry(
+                        user,
+                        totalAmount,
+                        PaymentConstants
+                                .BANK_TRANSFER,
+                        PaymentConstants.SUCCESS
+                );
 
         transactionHistoryService
-                .createConvertToPhysicalTransaction(
+                .createSellTransaction(
                         user,
-                        allocatedBranch,
+                        branch,
                         request.getQuantity(),
                         totalAmount,
                         TransactionConstants.SUCCESS
                 );
 
+        userRepository.save(user);
+
         vendorBranchRepository
-                .save(allocatedBranch);
+                .save(branch);
 
         if (
                 holding.getQuantity()
@@ -408,16 +390,11 @@ public class PhysicalGoldServiceImpl
             holdingRepository.delete(
                     holding
             );
+
+            return holding;
         }
 
-        else {
-
-            holdingRepository.save(
-                    holding
-            );
-        }
-
-        return physicalGoldTransactionRepository
-                .save(transaction);
+        return holdingRepository
+                .save(holding);
     }
 }

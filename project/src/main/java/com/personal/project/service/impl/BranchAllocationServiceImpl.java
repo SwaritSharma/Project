@@ -1,9 +1,13 @@
-package com.personal.project.service;
+package com.personal.project.service.impl;
+
+import com.personal.project.service.BranchAllocationService;
 
 import com.personal.project.entity.Address;
 import com.personal.project.entity.VendorBranch;
 import com.personal.project.exception.AddressNotFoundException;
 import com.personal.project.exception.BranchAllocationException;
+import com.personal.project.exception.InvalidQuantityException;
+import com.personal.project.exception.VendorNotFoundException;
 import com.personal.project.repository.AddressRepository;
 import com.personal.project.repository.VendorBranchRepository;
 import org.springframework.stereotype.Service;
@@ -44,6 +48,18 @@ public class BranchAllocationServiceImpl
             Integer deliveryAddressId,
             BigDecimal requiredQuantity
     ) {
+
+        if (vendorId == null) {
+            throw new VendorNotFoundException("Vendor id is required");
+        }
+
+        if (deliveryAddressId == null) {
+            throw new AddressNotFoundException("Delivery address id is required");
+        }
+
+        if (requiredQuantity == null || requiredQuantity.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidQuantityException("Quantity must be greater than 0");
+        }
 
         Address deliveryAddress =
                 addressRepository
@@ -89,7 +105,9 @@ public class BranchAllocationServiceImpl
                 branches.stream()
                         .filter(
                                 branch ->
-                                        branch.getAddress()
+                                        branch.getAddress() != null
+                                                && branch.getAddress().getCity() != null
+                                                && branch.getAddress()
                                                 .getCity()
                                                 .equalsIgnoreCase(
                                                         deliveryAddress
@@ -108,7 +126,9 @@ public class BranchAllocationServiceImpl
                 branches.stream()
                         .filter(
                                 branch ->
-                                        branch.getAddress()
+                                        branch.getAddress() != null
+                                                && branch.getAddress().getState() != null
+                                                && branch.getAddress()
                                                 .getState()
                                                 .equalsIgnoreCase(
                                                         deliveryAddress

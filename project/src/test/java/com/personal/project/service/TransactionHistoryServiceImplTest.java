@@ -1,10 +1,12 @@
 package com.personal.project.service;
 
+import com.personal.project.service.impl.TransactionHistoryServiceImpl;
 import com.personal.project.constants.TransactionConstants;
 import com.personal.project.entity.TransactionHistory;
 import com.personal.project.entity.User;
 import com.personal.project.entity.Vendor;
 import com.personal.project.entity.VendorBranch;
+import com.personal.project.mapper.TransactionMapper;
 import com.personal.project.repository.TransactionHistoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +26,10 @@ class TransactionHistoryServiceImplTest {
     @Mock
     private TransactionHistoryRepository
             transactionHistoryRepository;
+
+    @Mock
+    private TransactionMapper
+            transactionMapper;
 
     @InjectMocks
     private TransactionHistoryServiceImpl
@@ -55,6 +61,8 @@ class TransactionHistoryServiceImplTest {
 
     @Test
     void createBuyTransaction_ShouldCreateSuccessfully() {
+
+        stubTransactionMapper();
 
         when(
                 transactionHistoryRepository.save(
@@ -126,6 +134,8 @@ class TransactionHistoryServiceImplTest {
     @Test
     void createSellTransaction_ShouldCreateSuccessfully() {
 
+        stubTransactionMapper();
+
         when(
                 transactionHistoryRepository.save(
                         any(TransactionHistory.class)
@@ -196,6 +206,8 @@ class TransactionHistoryServiceImplTest {
     @Test
     void createConvertToPhysicalTransaction_ShouldCreateSuccessfully() {
 
+        stubTransactionMapper();
+
         when(
                 transactionHistoryRepository.save(
                         any(TransactionHistory.class)
@@ -261,5 +273,28 @@ class TransactionHistoryServiceImplTest {
                 .save(
                         any(TransactionHistory.class)
                 );
+    }
+
+    private void stubTransactionMapper() {
+        when(
+                transactionMapper.toEntity(
+                        any(),
+                        any(),
+                        any(BigDecimal.class),
+                        any(BigDecimal.class),
+                        anyString(),
+                        anyString(),
+                        any()
+                )
+        ).thenAnswer(invocation -> new TransactionHistory(
+                null,
+                invocation.getArgument(0),
+                invocation.getArgument(1),
+                invocation.getArgument(2),
+                invocation.getArgument(3),
+                invocation.getArgument(4),
+                invocation.getArgument(5),
+                invocation.getArgument(6)
+        ));
     }
 }

@@ -1,6 +1,8 @@
 package com.personal.project.controller;
 
 import com.personal.project.dto.WalletTopupRequest;
+import com.personal.project.dto.UserDTO;
+import com.personal.project.mapper.UserMapper;
 import com.personal.project.service.WalletService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,9 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 public class WalletController {
 
     private final WalletService walletService;
+    private final UserMapper userMapper;
 
     @PostMapping("/topup")
-    public ResponseEntity<?> topupWallet(@Valid @RequestBody WalletTopupRequest request) {
-        return ResponseEntity.ok(walletService.topupWallet(request));
+    public ResponseEntity<UserDTO> topupWallet(@Valid @RequestBody WalletTopupRequest request) {
+        return ResponseEntity.ok(userMapper.toDto(walletService.topupWallet(request)));
     }
 }

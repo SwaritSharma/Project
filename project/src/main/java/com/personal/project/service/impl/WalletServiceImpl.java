@@ -1,4 +1,7 @@
-package com.personal.project.service;
+package com.personal.project.service.impl;
+
+import com.personal.project.service.WalletService;
+import com.personal.project.service.PaymentService;
 
 import com.personal.project.constants.PaymentConstants;
 import com.personal.project.dto.WalletTopupRequest;
@@ -7,9 +10,13 @@ import com.personal.project.exception.InvalidQuantityException;
 import com.personal.project.exception.UserNotFoundException;
 import com.personal.project.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+
+import static com.personal.project.config.RedisCacheConfig.USER_DASHBOARD_CACHE;
+import static com.personal.project.config.RedisCacheConfig.USER_PAYMENTS_CACHE;
 
 @Service
 public class WalletServiceImpl
@@ -35,9 +42,17 @@ public class WalletServiceImpl
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {
+            USER_DASHBOARD_CACHE,
+            USER_PAYMENTS_CACHE
+    }, key = "#request.userId")
     public User topupWallet(
             WalletTopupRequest request
     ) {
+
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
+        }
 
         if (
                 request.getAmount()
@@ -62,11 +77,13 @@ public class WalletServiceImpl
                                         )
                         );
 
+        BigDecimal currentBalance =
+                user.getBalance() != null ? user.getBalance() : BigDecimal.ZERO;
+
         BigDecimal updatedBalance =
-                user.getBalance()
-                        .add(
-                                request.getAmount()
-                        );
+                currentBalance.add(
+                        request.getAmount()
+                );
 
         user.setBalance(
                 updatedBalance
@@ -80,7 +97,13 @@ public class WalletServiceImpl
                         PaymentConstants.SUCCESS
                 );
 
-        return userRepository
+        User savedUser = userRepository
                 .save(user);
+
+        if (savedUser.getAddress() != null) {
+            savedUser.getAddress().getCity();
+        }
+
+        return savedUser;
     }
 }

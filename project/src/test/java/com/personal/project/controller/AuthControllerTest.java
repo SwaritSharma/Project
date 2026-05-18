@@ -2,6 +2,8 @@ package com.personal.project.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.personal.project.dto.LoginRequest;
+import com.personal.project.mapper.AddressMapper;
+import com.personal.project.mapper.UserMapper;
 import com.personal.project.security.jwt.JwtService;
 import com.personal.project.security.service.CustomUserDetailsService;
 import com.personal.project.security.service.VendorUserDetailsService;
@@ -63,6 +65,12 @@ class AuthControllerTest {
 
     @MockitoBean
     private PasswordEncoder passwordEncoder;
+
+    @MockitoBean
+    private UserMapper userMapper;
+
+    @MockitoBean
+    private AddressMapper addressMapper;
 
     @Test
     void shouldLoginSuccessfully()

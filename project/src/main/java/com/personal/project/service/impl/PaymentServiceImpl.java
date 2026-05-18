@@ -1,8 +1,11 @@
-package com.personal.project.service;
+package com.personal.project.service.impl;
+
+import com.personal.project.service.PaymentService;
 
 import com.personal.project.constants.PaymentConstants;
 import com.personal.project.entity.Payment;
 import com.personal.project.entity.User;
+import com.personal.project.mapper.PaymentMapper;
 import com.personal.project.repository.PaymentRepository;
 import org.springframework.stereotype.Service;
 
@@ -16,12 +19,19 @@ public class PaymentServiceImpl
     private final PaymentRepository
             paymentRepository;
 
+    private final PaymentMapper
+            paymentMapper;
+
     public PaymentServiceImpl(
-            PaymentRepository paymentRepository
+            PaymentRepository paymentRepository,
+            PaymentMapper paymentMapper
     ) {
 
         this.paymentRepository =
                 paymentRepository;
+
+        this.paymentMapper =
+                paymentMapper;
     }
 
     @Override
@@ -32,26 +42,12 @@ public class PaymentServiceImpl
             String paymentStatus
     ) {
 
-        Payment payment = new Payment();
-
-        payment.setUser(user);
-
-        payment.setAmount(amount);
-
-        payment.setPaymentMethod(
-                paymentMethod
-        );
-
-        payment.setTransactionType(
-                PaymentConstants
-                        .CREDITED_TO_WALLET
-        );
-
-        payment.setPaymentStatus(
-                paymentStatus
-        );
-
-        payment.setCreatedAt(
+        Payment payment = paymentMapper.toEntity(
+                user,
+                amount,
+                paymentMethod,
+                PaymentConstants.CREDITED_TO_WALLET,
+                paymentStatus,
                 LocalDateTime.now()
         );
 
@@ -67,26 +63,12 @@ public class PaymentServiceImpl
             String paymentStatus
     ) {
 
-        Payment payment = new Payment();
-
-        payment.setUser(user);
-
-        payment.setAmount(amount);
-
-        payment.setPaymentMethod(
-                paymentMethod
-        );
-
-        payment.setTransactionType(
-                PaymentConstants
-                        .DEBITED_FROM_WALLET
-        );
-
-        payment.setPaymentStatus(
-                paymentStatus
-        );
-
-        payment.setCreatedAt(
+        Payment payment = paymentMapper.toEntity(
+                user,
+                amount,
+                paymentMethod,
+                PaymentConstants.DEBITED_FROM_WALLET,
+                paymentStatus,
                 LocalDateTime.now()
         );
 

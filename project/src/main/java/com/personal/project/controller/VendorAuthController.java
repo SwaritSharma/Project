@@ -2,7 +2,12 @@ package com.personal.project.controller;
 
 import com.personal.project.dto.LoginRequest;
 import com.personal.project.dto.LoginResponse;
+import com.personal.project.dto.VendorRegisterRequest;
+import com.personal.project.exception.DuplicateResourceException;
 import com.personal.project.exception.InvalidCredentialsException;
+import com.personal.project.mapper.AddressMapper;
+import com.personal.project.mapper.VendorBranchMapper;
+import com.personal.project.mapper.VendorMapper;
 import com.personal.project.security.jwt.JwtService;
 import com.personal.project.security.service.VendorUserDetailsService;
 import com.personal.project.entity.Vendor;
@@ -18,6 +23,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -54,6 +61,12 @@ public class VendorAuthController {
     private final
     GoldPriceService
             goldPriceService;
+
+    private final VendorMapper vendorMapper;
+
+    private final AddressMapper addressMapper;
+
+    private final VendorBranchMapper vendorBranchMapper;
 
     @PostMapping("/login")
     public LoginResponse login(
@@ -113,50 +126,38 @@ public class VendorAuthController {
     }
 
     @PostMapping("/register")
-    public LoginResponse register(
-            @Valid @RequestBody com.personal.project.dto.VendorRegisterRequest request
+    public ResponseEntity<LoginResponse> register(
+            @Valid @RequestBody VendorRegisterRequest request
     ) {
         if (vendorRepository.findByContactEmail(request.getContactEmail()).isPresent()) {
-            throw new RuntimeException("Email already in use by another vendor");
+            throw new DuplicateResourceException("Email already in use by another vendor");
         }
 
-        Vendor vendor = new Vendor();
-        vendor.setVendorName(request.getVendorName());
-        vendor.setContactPersonName(request.getContactPersonName());
-        vendor.setContactEmail(request.getContactEmail());
-        vendor.setContactPhone(request.getContactPhone());
+        Vendor vendor = vendorMapper.toEntity(request);
         vendor.setPassword(passwordEncoder.encode(request.getPassword()));
-        vendor.setDescription(request.getDescription());
-        vendor.setWebsiteUrl(request.getWebsiteUrl());
         vendor.setTotalGoldQuantity(BigDecimal.ZERO);
         vendor.setCurrentGoldPrice(goldPriceService.getCurrentPrice().getPrice());
         vendor.setCreatedAt(LocalDateTime.now());
 
         vendor = vendorRepository.save(vendor);
 
-        Address address = new Address();
-        address.setStreet(request.getStreet());
-        address.setCity(request.getCity());
-        address.setState(request.getState());
-        address.setPostalCode(request.getPostalCode());
-        address.setCountry(request.getCountry());
+        Address address = addressMapper.toEntity(request);
         address = addressRepository.save(address);
 
-        VendorBranch branch = new VendorBranch();
-        branch.setVendor(vendor);
-        branch.setAddress(address);
-        branch.setQuantity(BigDecimal.ZERO);
+        VendorBranch branch = vendorBranchMapper.toEntity(vendor, address, BigDecimal.ZERO, LocalDateTime.now());
         vendorBranchRepository.save(branch);
 
         UserDetails userDetails = vendorUserDetailsService.loadUserByUsername(vendor.getContactEmail());
         String token = jwtService.generateToken(userDetails);
 
-        return new LoginResponse(
+        LoginResponse response = new LoginResponse(
                 token,
                 vendor.getVendorName(),
                 vendor.getContactEmail(),
                 "VENDOR",
                 vendor.getVendorId()
         );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

@@ -1,9 +1,12 @@
-package com.personal.project.service;
+package com.personal.project.service.impl;
+
+import com.personal.project.service.TransactionHistoryService;
 
 import com.personal.project.entity.TransactionHistory;
 import com.personal.project.entity.User;
 import com.personal.project.entity.VendorBranch;
 import com.personal.project.constants.TransactionConstants;
+import com.personal.project.mapper.TransactionMapper;
 import com.personal.project.repository.TransactionHistoryRepository;
 import org.springframework.stereotype.Service;
 
@@ -18,13 +21,22 @@ public class TransactionHistoryServiceImpl
     TransactionHistoryRepository
             transactionHistoryRepository;
 
+    private final
+    TransactionMapper
+            transactionMapper;
+
     public TransactionHistoryServiceImpl(
             TransactionHistoryRepository
-                    transactionHistoryRepository
+                    transactionHistoryRepository,
+            TransactionMapper
+                    transactionMapper
     ) {
 
         this.transactionHistoryRepository =
                 transactionHistoryRepository;
+
+        this.transactionMapper =
+                transactionMapper;
     }
 
     @Override
@@ -37,31 +49,13 @@ public class TransactionHistoryServiceImpl
             String transactionStatus
     ) {
 
-        TransactionHistory
-                transactionHistory =
-                new TransactionHistory();
-
-        transactionHistory.setUser(user);
-
-        transactionHistory.setBranch(branch);
-
-        transactionHistory.setQuantity(
-                quantity
-        );
-
-        transactionHistory.setAmount(
-                amount
-        );
-
-        transactionHistory.setTransactionType(
-                TransactionConstants.BUY
-        );
-
-        transactionHistory.setTransactionStatus(
-                transactionStatus
-        );
-
-        transactionHistory.setCreatedAt(
+        TransactionHistory transactionHistory = transactionMapper.toEntity(
+                user,
+                branch,
+                quantity,
+                amount,
+                TransactionConstants.BUY,
+                transactionStatus,
                 LocalDateTime.now()
         );
 
@@ -79,31 +73,13 @@ public class TransactionHistoryServiceImpl
             String transactionStatus
     ) {
 
-        TransactionHistory
-                transactionHistory =
-                new TransactionHistory();
-
-        transactionHistory.setUser(user);
-
-        transactionHistory.setBranch(branch);
-
-        transactionHistory.setQuantity(
-                quantity
-        );
-
-        transactionHistory.setAmount(
-                amount
-        );
-
-        transactionHistory.setTransactionType(
-                TransactionConstants.SELL
-        );
-
-        transactionHistory.setTransactionStatus(
-                transactionStatus
-        );
-
-        transactionHistory.setCreatedAt(
+        TransactionHistory transactionHistory = transactionMapper.toEntity(
+                user,
+                branch,
+                quantity,
+                amount,
+                TransactionConstants.SELL,
+                transactionStatus,
                 LocalDateTime.now()
         );
 
@@ -121,32 +97,13 @@ public class TransactionHistoryServiceImpl
             String transactionStatus
     ) {
 
-        TransactionHistory
-                transactionHistory =
-                new TransactionHistory();
-
-        transactionHistory.setUser(user);
-
-        transactionHistory.setBranch(branch);
-
-        transactionHistory.setQuantity(
-                quantity
-        );
-
-        transactionHistory.setAmount(
-                amount
-        );
-
-        transactionHistory.setTransactionType(
-                TransactionConstants
-                        .CONVERT_TO_PHYSICAL
-        );
-
-        transactionHistory.setTransactionStatus(
-                transactionStatus
-        );
-
-        transactionHistory.setCreatedAt(
+        TransactionHistory transactionHistory = transactionMapper.toEntity(
+                user,
+                branch,
+                quantity,
+                amount,
+                TransactionConstants.CONVERT_TO_PHYSICAL,
+                transactionStatus,
                 LocalDateTime.now()
         );
 

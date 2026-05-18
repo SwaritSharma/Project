@@ -1,5 +1,6 @@
 package com.personal.project.service;
 
+import com.personal.project.service.impl.VirtualGoldServiceImpl;
 import com.personal.project.constants.PaymentConstants;
 import com.personal.project.constants.TransactionConstants;
 import com.personal.project.dto.BuyVirtualGoldRequest;
@@ -17,6 +18,7 @@ import com.personal.project.exception.InvalidQuantityException;
 import com.personal.project.exception.UnauthorizedHoldingAccessException;
 import com.personal.project.exception.UserNotFoundException;
 import com.personal.project.exception.VendorNotFoundException;
+import com.personal.project.mapper.HoldingMapper;
 import com.personal.project.repository.UserRepository;
 import com.personal.project.repository.VendorBranchRepository;
 import com.personal.project.repository.VendorRepository;
@@ -58,6 +60,9 @@ class VirtualGoldServiceImplTest {
 
     @Mock
     private TransactionHistoryService transactionHistoryService;
+
+    @Mock
+    private HoldingMapper holdingMapper;
 
     @InjectMocks
     private VirtualGoldServiceImpl virtualGoldService;
@@ -138,6 +143,15 @@ class VirtualGoldServiceImplTest {
 
     @Test
     void buyVirtualGold_ShouldBuySuccessfully() {
+
+        when(holdingMapper.toEntity(any(User.class), any(VendorBranch.class), any(BigDecimal.class), any()))
+                .thenAnswer(invocation -> new VirtualGoldHolding(
+                        null,
+                        invocation.getArgument(0),
+                        invocation.getArgument(1),
+                        invocation.getArgument(2),
+                        invocation.getArgument(3)
+                ));
 
         when(
                 userRepository.findById(1)

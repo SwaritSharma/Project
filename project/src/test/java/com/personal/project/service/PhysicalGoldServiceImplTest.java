@@ -1,5 +1,6 @@
 package com.personal.project.service;
 
+import com.personal.project.service.impl.PhysicalGoldServiceImpl;
 import com.personal.project.constants.PaymentConstants;
 import com.personal.project.constants.TransactionConstants;
 import com.personal.project.dto.BuyPhysicalGoldRequest;
@@ -18,6 +19,7 @@ import com.personal.project.exception.InvalidQuantityException;
 import com.personal.project.exception.UnauthorizedHoldingAccessException;
 import com.personal.project.exception.UserNotFoundException;
 import com.personal.project.exception.VendorNotFoundException;
+import com.personal.project.mapper.PhysicalGoldMapper;
 import com.personal.project.repository.AddressRepository;
 import com.personal.project.repository.PhysicalGoldTransactionRepository;
 import com.personal.project.repository.UserRepository;
@@ -67,6 +69,9 @@ class PhysicalGoldServiceImplTest {
 
     @Mock
     private TransactionHistoryService transactionHistoryService;
+
+    @Mock
+    private PhysicalGoldMapper physicalGoldMapper;
 
     @InjectMocks
     private PhysicalGoldServiceImpl physicalGoldService;
@@ -153,6 +158,8 @@ class PhysicalGoldServiceImplTest {
 
     @Test
     void buyPhysicalGold_ShouldBuySuccessfully() {
+
+        stubPhysicalGoldMapper();
 
         when(
                 userRepository.findById(1)
@@ -372,6 +379,8 @@ class PhysicalGoldServiceImplTest {
 
     @Test
     void convertToPhysicalGold_ShouldConvertSuccessfully() {
+
+        stubPhysicalGoldMapper();
 
         when(
                 userRepository.findById(1)
@@ -681,6 +690,8 @@ class PhysicalGoldServiceImplTest {
     @Test
     void convertToPhysicalGold_ShouldDeleteHolding_WhenQuantityBecomesZero() {
 
+        stubPhysicalGoldMapper();
+
         when(
                 userRepository.findById(1)
         ).thenReturn(
@@ -741,5 +752,24 @@ class PhysicalGoldServiceImplTest {
 
         verify(holdingRepository)
                 .delete(holding);
+    }
+
+    private void stubPhysicalGoldMapper() {
+        when(
+                physicalGoldMapper.toEntity(
+                        any(User.class),
+                        any(VendorBranch.class),
+                        any(Address.class),
+                        any(BigDecimal.class),
+                        any()
+                )
+        ).thenAnswer(invocation -> new PhysicalGoldTransaction(
+                null,
+                invocation.getArgument(0),
+                invocation.getArgument(1),
+                invocation.getArgument(2),
+                invocation.getArgument(3),
+                invocation.getArgument(4)
+        ));
     }
 }
