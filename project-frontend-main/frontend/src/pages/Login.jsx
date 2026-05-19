@@ -15,6 +15,8 @@ import {
     Building2,
     Phone,
     Globe,
+    Eye,
+    EyeOff,
 } from "lucide-react";
 import { Button, Field, Input } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
@@ -35,6 +37,7 @@ export default function Login() {
     const [isRegistering, setIsRegistering] = useState(false);
     const [loading, setLoading] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
+    const [showPassword, setShowPassword] = useState(false);
 
     const submit = async (e) => {
         e.preventDefault();
@@ -331,15 +334,32 @@ export default function Login() {
                                 <Lock className="w-4 h-4 text-muted-foreground" />
                                 <input
                                     name="password"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     defaultValue=""
                                     placeholder="Enter password"
                                     required
                                     className="flex-1 bg-transparent outline-none text-sm"
                                     data-testid={`${isRegistering ? "register" : role.toLowerCase()}-password-input`}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="p-1 hover:bg-secondary rounded-md text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center"
+                                    title={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
                             </div>
                         </Field>
+
+                        {!isRegistering && (
+                            <div className="rounded-lg border border-accent/25 bg-accent/5 p-3 text-xs text-muted-foreground flex items-start gap-2.5 select-none transition-all duration-300">
+                                <span className="text-accent mt-0.5 text-sm">💡</span>
+                                <div>
+                                    <span className="font-semibold text-foreground">Tip:</span> If you recently updated your email address in your profile, please use your <span className="font-semibold text-accent">new email address</span> to sign in.
+                                </div>
+                            </div>
+                        )}
 
                         <Button
                             type="submit"

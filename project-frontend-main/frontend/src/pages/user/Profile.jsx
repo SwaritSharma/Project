@@ -6,7 +6,7 @@ import { Mail, MapPin, ShieldCheck, Wallet, Coins, TrendingUp, Edit2, Check, X }
 import { toast } from "sonner";
 
 export default function Profile() {
-    const { user } = useAuth();
+    const { user, refreshAuth } = useAuth();
     const [dash, setDash] = useState(null);
     const [addresses, setAddresses] = useState([]);
     const [fieldErrors, setFieldErrors] = useState({});
@@ -53,7 +53,7 @@ export default function Profile() {
         try {
             setSaving(true);
             setFieldErrors({});
-            await api.put(`/users/${user.user_id}/profile`, {
+            const response = await api.put(`/users/${user.user_id}/profile`, {
                 name: editName,
                 email: editEmail,
                 street: editStreet,
@@ -62,6 +62,12 @@ export default function Profile() {
                 postalCode: editPostalCode,
                 country: editCountry
             });
+            
+            const newToken = response?.headers?.["x-new-token"] || response?.headers?.["X-New-Token"];
+            if (newToken && refreshAuth) {
+                refreshAuth(newToken, editEmail);
+            }
+
             toast.success("Profile updated successfully");
             setIsEditing(false);
             load();

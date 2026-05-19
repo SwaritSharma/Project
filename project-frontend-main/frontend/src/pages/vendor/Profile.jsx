@@ -9,7 +9,7 @@ const normalizePhoneInput = (value) => String(value || "").replace(/\D/g, "").sl
 const isTenDigitPhone = (value) => value.length === 10 && value.split("").every((char) => char >= "0" && char <= "9");
 
 export default function VendorProfile() {
-    const { user } = useAuth();
+    const { user, refreshAuth } = useAuth();
     const [dash, setDash] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({});
@@ -53,7 +53,13 @@ export default function VendorProfile() {
                 return;
             }
             const payload = { ...formData, contactPhone: normalizedPhone };
-            await api.put("/vendors/" + user.vendor_id + "/profile", payload);
+            const response = await api.put("/vendors/" + user.vendor_id + "/profile", payload);
+            
+            const newToken = response?.headers?.["x-new-token"] || response?.headers?.["X-New-Token"];
+            if (newToken && refreshAuth) {
+                refreshAuth(newToken, formData.contactEmail);
+            }
+
             toast.success("Profile updated successfully");
             setIsEditing(false);
             load();

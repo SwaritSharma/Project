@@ -61,8 +61,27 @@ export function AuthProvider({ children }) {
         setUser(null);
     };
 
+    const refreshAuth = (newToken, newEmail) => {
+        if (!newToken || isTokenExpired(newToken)) return;
+        localStorage.setItem("dg_token", newToken);
+        const raw = localStorage.getItem("dg_user");
+        if (raw) {
+            try {
+                const userObj = JSON.parse(raw);
+                userObj.token = newToken;
+                if (newEmail) {
+                    userObj.email = newEmail;
+                    userObj.contactEmail = newEmail;
+                    userObj.contact_email = newEmail;
+                }
+                localStorage.setItem("dg_user", JSON.stringify(userObj));
+                setUser(userObj);
+            } catch (_) {}
+        }
+    };
+
     return (
-        <AuthCtx.Provider value={{ user, ready, login, logout }}>
+        <AuthCtx.Provider value={{ user, ready, login, logout, refreshAuth }}>
             {children}
         </AuthCtx.Provider>
     );
