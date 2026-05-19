@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { api, fmtINR, fmtINR2, fmtGrams } from "@/lib/api";
+import { api, fmtINR, fmtINR2, fmtGrams, toastApiError } from "@/lib/api";
 import { Card, StatCard, PageHeader, Button, Badge } from "@/components/ui-kit";
 import GoldPriceChart from "@/components/charts/GoldPriceChart";
 import AddBranchDialog from "@/components/vendor/AddBranchDialog";
@@ -34,23 +34,52 @@ export default function VendorDashboard() {
     const [branches, setBranches] = useState([]);
     const [priceHist, setPriceHist] = useState([]);
     const [addOpen, setAddOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
     const load = useCallback(async () => {
-        const [d, b, p] = await Promise.all([
-            api.get(`/vendors/${user.vendor_id}/dashboard`),
-            api.get(`/vendors/${user.vendor_id}/branches`),
-            api.get(`/gold/price-history?days=30`),
-        ]);
-        setDash(d.data);
-        setBranches(b.data);
-        setPriceHist(p.data);
+        try {
+            setLoading(true);
+            setLoadError("");
+            const [d, b, p] = await Promise.all([
+                api.get(`/vendors/${user.vendor_id}/dashboard`),
+                api.get(`/vendors/${user.vendor_id}/branches`),
+                api.get(`/gold/price-history?days=30`),
+            ]);
+            setDash(d.data);
+            setBranches(b.data || []);
+            setPriceHist(p.data || []);
+        } catch (err) {
+            const parsed = toastApiError(err, "Failed to load dashboard data");
+            setLoadError(parsed.message || "Failed to load dashboard data");
+        } finally {
+            setLoading(false);
+        }
     }, [user]);
 
     useEffect(() => {
         load();
     }, [load]);
 
-    if (!dash) return <div className="text-sm text-muted-foreground">Loading…</div>;
+    if (loadError) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6" data-testid="vendor-dashboard">
+                <div className="text-destructive font-medium mb-3">{loadError}</div>
+                <Button onClick={load} variant="outline" size="sm">
+                    Retry Loading
+                </Button>
+            </div>
+        );
+    }
+
+    if (loading && !dash) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px] gap-2 text-sm text-muted-foreground" data-testid="vendor-dashboard">
+                <div className="inline-block w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />{" "}
+                Loading dashboard…
+            </div>
+        );
+    }
 
     const branchData = branches.map((b) => ({
         name: b.address?.city,

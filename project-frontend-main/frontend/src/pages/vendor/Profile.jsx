@@ -41,6 +41,7 @@ export default function VendorProfile() {
     if (!dash) return <div className="text-sm text-muted-foreground">{loadError || "Loading..."}</div>;
 
     const handleSave = async () => {
+        if (saving) return;
         try {
             setSaving(true);
             setFieldErrors({});

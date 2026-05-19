@@ -99,7 +99,16 @@ export function getFieldErrors(error) {
 export function toastApiError(error, fallback = "Request failed") {
     const normalized = error?.normalized || normalizeApiError(error, fallback);
     const title = normalized.status === 401 ? "Authentication required" : normalized.message || fallback;
-    const description = normalized.details?.length ? normalized.details.join("\n") : undefined;
+    
+    let description = undefined;
+    if (normalized.details?.length) {
+        const uniqueDetails = Array.from(new Set(normalized.details.map(d => String(d).trim())))
+            .filter(d => d.toLowerCase() !== title.toLowerCase());
+        if (uniqueDetails.length > 0) {
+            description = uniqueDetails.join("\n");
+        }
+    }
+    
     toast.error(title, { description });
     return normalized;
 }

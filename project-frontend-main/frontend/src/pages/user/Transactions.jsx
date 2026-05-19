@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { api, fmtINR, fmtGrams, fmtDateTime } from "@/lib/api";
-import { Card, PageHeader, Input, Badge, EmptyState } from "@/components/ui-kit";
+import { api, fmtINR, fmtGrams, fmtDateTime, toastApiError } from "@/lib/api";
+import { Card, PageHeader, Input, Badge, EmptyState, Button } from "@/components/ui-kit";
 import { Search, Receipt, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,15 +24,26 @@ export default function Transactions() {
     const [paymentDirection, setPaymentDirection] = useState("all");
     const [tab, setTab] = useState("txns");
     const [page, setPage] = useState(1);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const PAGE_SIZE = 10;
 
     const load = useCallback(async () => {
-        const [t, p] = await Promise.all([
-            api.get(`/users/${user.user_id}/transactions`),
-            api.get(`/users/${user.user_id}/payments`),
-        ]);
-        setTxns(t.data);
-        setPayments(p.data);
+        try {
+            setLoading(true);
+            setLoadError("");
+            const [t, p] = await Promise.all([
+                api.get(`/users/${user.user_id}/transactions`),
+                api.get(`/users/${user.user_id}/payments`),
+            ]);
+            setTxns(t.data || []);
+            setPayments(p.data || []);
+        } catch (err) {
+            const parsed = toastApiError(err, "Failed to load transactions ledger");
+            setLoadError(parsed.message || "Failed to load transactions ledger");
+        } finally {
+            setLoading(false);
+        }
     }, [user]);
 
     useEffect(() => {
@@ -154,7 +165,16 @@ export default function Transactions() {
                 />
             </div>
 
-            {tab === "txns" ? (
+            {loadError ? (
+                <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-dashed border-border rounded-lg bg-card/10">
+                    <div className="text-destructive font-medium mb-3">{loadError}</div>
+                    <Button onClick={load} variant="outline" size="sm">
+                        Retry Loading
+                    </Button>
+                </div>
+            ) : loading ? (
+                <div className="text-sm text-muted-foreground py-10">Loading ledger…</div>
+            ) : tab === "txns" ? (
                 filteredTxns.length === 0 ? (
                     <EmptyState
                         icon={Receipt}

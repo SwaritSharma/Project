@@ -24,6 +24,7 @@ import com.personal.project.repository.AddressRepository;
 import com.personal.project.repository.TransactionHistoryRepository;
 import com.personal.project.repository.VendorBranchRepository;
 import com.personal.project.repository.VendorRepository;
+import com.personal.project.repository.VirtualGoldHoldingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -54,6 +55,7 @@ public class VendorDashboardServiceImpl implements VendorDashboardService {
     private final VendorBranchMapper vendorBranchMapper;
     private final TransactionMapper transactionMapper;
     private final VendorDashboardMapper vendorDashboardMapper;
+    private final VirtualGoldHoldingRepository holdingRepository;
 
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = VENDOR_DASHBOARD_CACHE, key = "#vendorId")
@@ -65,13 +67,7 @@ public class VendorDashboardServiceImpl implements VendorDashboardService {
                 .map(branch -> branch.getQuantity() != null ? branch.getQuantity() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Calculate sold quantity from transactions where type is 'BUY' (user buys from vendor)
-        // Wait, if transaction type is BUY, it means the user bought gold from this vendor, so vendor sold it.
-        // Let's assume all BUY transactions for this vendor's branches count.
-        // For simplicity, we can query all transactions and filter.
-        // But since we don't have a specific repo method for vendor transactions easily, let's just use the vendor's total_gold_quantity or similar.
-        // Wait, Vendor entity has totalGoldQuantity.
-        BigDecimal totalSold = BigDecimal.ZERO; 
+        BigDecimal totalSold = transactionRepository.sumQuantityByVendorIdAndTransactionTypeAndTransactionStatus(vendorId); 
         
         return vendorDashboardMapper.toDashboard(
                 vendor,
@@ -145,6 +141,9 @@ public class VendorDashboardServiceImpl implements VendorDashboardService {
         VendorBranch branch = vendorBranchRepository.findById(branchId).orElseThrow(() -> new BranchAllocationException("Branch not found"));
         if (branch.getVendor() == null || !branch.getVendor().getVendorId().equals(vendorId)) {
             throw new BranchAllocationException("Branch does not belong to this vendor");
+        }
+        if (transactionRepository.existsByBranchBranchId(branchId) || holdingRepository.existsByBranchBranchId(branchId)) {
+            throw new BranchAllocationException("Cannot delete branch because it has active holdings or transaction history");
         }
         vendorBranchRepository.delete(branch);
     }

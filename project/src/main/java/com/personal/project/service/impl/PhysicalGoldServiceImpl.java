@@ -9,6 +9,7 @@ import com.personal.project.constants.PaymentConstants;
 import com.personal.project.constants.TransactionConstants;
 import com.personal.project.dto.BuyPhysicalGoldRequest;
 import com.personal.project.dto.ConvertToPhysicalGoldRequest;
+import com.personal.project.dto.PhysicalGoldDTO;
 import com.personal.project.entity.Address;
 import com.personal.project.entity.PhysicalGoldTransaction;
 import com.personal.project.entity.User;
@@ -135,8 +136,7 @@ public class PhysicalGoldServiceImpl
             @CacheEvict(cacheNames = {USER_DASHBOARD_CACHE, USER_TRANSACTIONS_CACHE, USER_PAYMENTS_CACHE, USER_PHYSICAL_GOLD_CACHE}, key = "#request.userId"),
             @CacheEvict(cacheNames = {VENDOR_DASHBOARD_CACHE, VENDOR_BRANCHES_CACHE, VENDOR_TRANSACTIONS_CACHE, VENDORS_CACHE}, key = "#request.vendorId")
     })
-    public PhysicalGoldTransaction
-    buyPhysicalGold(
+    public PhysicalGoldDTO buyPhysicalGold(
             BuyPhysicalGoldRequest request
     ) {
 
@@ -157,7 +157,7 @@ public class PhysicalGoldServiceImpl
 
         User user =
                 userRepository
-                        .findById(
+                        .findByUserIdForUpdate(
                                 request.getUserId()
                         )
                         .orElseThrow(
@@ -199,6 +199,9 @@ public class PhysicalGoldServiceImpl
                                         .getAddressId(),
                                 request.getQuantity()
                         );
+
+        allocatedBranch = vendorBranchRepository.findByBranchIdForUpdate(allocatedBranch.getBranchId())
+                .orElseThrow(() -> new BranchAllocationException("Allocated branch not found"));
 
         BigDecimal totalAmount =
                 vendor.getCurrentGoldPrice()
@@ -260,8 +263,10 @@ public class PhysicalGoldServiceImpl
         vendorBranchRepository
                 .save(allocatedBranch);
 
-        return physicalGoldTransactionRepository
+        PhysicalGoldTransaction savedTransaction = physicalGoldTransactionRepository
                 .save(transaction);
+
+        return physicalGoldMapper.toDto(savedTransaction);
     }
 
     @Override
@@ -270,8 +275,7 @@ public class PhysicalGoldServiceImpl
             @CacheEvict(cacheNames = {USER_DASHBOARD_CACHE, USER_HOLDINGS_CACHE, USER_TRANSACTIONS_CACHE, USER_PHYSICAL_GOLD_CACHE}, key = "#request.userId"),
             @CacheEvict(cacheNames = {VENDOR_DASHBOARD_CACHE, VENDOR_BRANCHES_CACHE, VENDOR_TRANSACTIONS_CACHE, VENDORS_CACHE}, allEntries = true)
     })
-    public PhysicalGoldTransaction
-    convertToPhysicalGold(
+    public PhysicalGoldDTO convertToPhysicalGold(
             ConvertToPhysicalGoldRequest request
     ) {
 
@@ -292,7 +296,7 @@ public class PhysicalGoldServiceImpl
 
         User user =
                 userRepository
-                        .findById(
+                        .findByUserIdForUpdate(
                                 request.getUserId()
                         )
                         .orElseThrow(
@@ -311,7 +315,7 @@ public class PhysicalGoldServiceImpl
 
         VirtualGoldHolding holding =
                 holdingRepository
-                        .findById(
+                        .findByHoldingIdForUpdate(
                                 request.getHoldingId()
                         )
                         .orElseThrow(
@@ -369,6 +373,9 @@ public class PhysicalGoldServiceImpl
                                         .getAddressId(),
                                 request.getQuantity()
                         );
+
+        allocatedBranch = vendorBranchRepository.findByBranchIdForUpdate(allocatedBranch.getBranchId())
+                .orElseThrow(() -> new BranchAllocationException("Allocated branch not found"));
 
         allocatedBranch.setQuantity(
                 allocatedBranch.getQuantity()
@@ -430,7 +437,9 @@ public class PhysicalGoldServiceImpl
             );
         }
 
-        return physicalGoldTransactionRepository
+        PhysicalGoldTransaction savedTransaction = physicalGoldTransactionRepository
                 .save(transaction);
+
+        return physicalGoldMapper.toDto(savedTransaction);
     }
 }

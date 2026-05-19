@@ -1,11 +1,11 @@
 package com.personal.project.service;
 
 import com.personal.project.dto.WalletTopupRequest;
-import com.personal.project.entity.User;
+import com.personal.project.dto.UserDTO;
 
 public interface WalletService {
 
-    User topupWallet(
+    UserDTO topupWallet(
             WalletTopupRequest request
     );
 }

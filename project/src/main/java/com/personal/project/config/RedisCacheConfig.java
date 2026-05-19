@@ -44,7 +44,19 @@ public class RedisCacheConfig implements CachingConfigurer {
     @Bean
     @ConditionalOnProperty(name = "app.cache.redis.enabled", havingValue = "true", matchIfMissing = true)
     public RedisSerializer<Object> redisJsonSerializer() {
-        return RedisSerializer.json();
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        
+        com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator validator = 
+            com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator.instance;
+        mapper.activateDefaultTyping(
+            validator,
+            com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping.NON_FINAL,
+            com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY
+        );
+        
+        return new org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer(mapper);
     }
 
     @Bean

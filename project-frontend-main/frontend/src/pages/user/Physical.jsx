@@ -14,25 +14,56 @@ export default function Physical() {
     const [addresses, setAddresses] = useState([]);
     const [deliveries, setDeliveries] = useState([]);
     const [balance, setBalance] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
     const load = useCallback(async () => {
-        const [v, h, a, d, dash] = await Promise.all([
-            api.get("/vendors"),
-            api.get(`/users/${user.user_id}/holdings`),
-            api.get(`/users/${user.user_id}/addresses`),
-            api.get(`/users/${user.user_id}/physical-gold`),
-            api.get(`/users/${user.user_id}/dashboard`),
-        ]);
-        setVendors(v.data);
-        setHoldings(h.data);
-        setAddresses(a.data);
-        setDeliveries(d.data);
-        setBalance(dash.data.balance || 0);
+        try {
+            setLoading(true);
+            setLoadError("");
+            const [v, h, a, d, dash] = await Promise.all([
+                api.get("/vendors"),
+                api.get(`/users/${user.user_id}/holdings`),
+                api.get(`/users/${user.user_id}/addresses`),
+                api.get(`/users/${user.user_id}/physical-gold`),
+                api.get(`/users/${user.user_id}/dashboard`),
+            ]);
+            setVendors(v.data || []);
+            setHoldings(h.data || []);
+            setAddresses(a.data || []);
+            setDeliveries(d.data || []);
+            setBalance(dash.data?.balance || 0);
+        } catch (err) {
+            const parsed = toastApiError(err, "Failed to load physical gold page data");
+            setLoadError(parsed.message || "Failed to load physical gold page data");
+        } finally {
+            setLoading(false);
+        }
     }, [user]);
 
     useEffect(() => {
         load();
     }, [load]);
+
+    if (loadError) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6" data-testid="physical-page">
+                <div className="text-destructive font-medium mb-3">{loadError}</div>
+                <Button onClick={load} variant="outline" size="sm">
+                    Retry Loading
+                </Button>
+            </div>
+        );
+    }
+
+    if (loading && !vendors.length && !holdings.length && !deliveries.length) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px] gap-2 text-sm text-muted-foreground" data-testid="physical-page">
+                <div className="inline-block w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />{" "}
+                Loading physical gold desk…
+            </div>
+        );
+    }
 
     return (
         <div data-testid="physical-page">
@@ -153,6 +184,7 @@ function BuyPhysical({ vendors, addresses, userId, balance, onDone }) {
 
     const submit = async (e) => {
         e.preventDefault();
+        if (busy) return;
         if (!vendorId || !addressId || !qty)
             return toast.error("Fill all fields");
         if (isInsufficient)
@@ -404,6 +436,7 @@ function ConvertPhysical({ holdings, addresses, userId, onDone }) {
 
     const submit = async (e) => {
         e.preventDefault();
+        if (busy) return;
         if (!holdingId || !addressId || !qty)
             return toast.error("Fill all fields");
         if (tooMuch) return toast.error("Quantity exceeds holding");

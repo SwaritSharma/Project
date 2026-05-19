@@ -38,6 +38,7 @@ export default function Login() {
 
     const submit = async (e) => {
         e.preventDefault();
+        if (loading) return;
         const fd = new FormData(e.currentTarget);
         const email = fd.get("email");
         const password = fd.get("password");

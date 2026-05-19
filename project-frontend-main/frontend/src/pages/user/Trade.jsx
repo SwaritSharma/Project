@@ -17,21 +17,52 @@ export default function Trade() {
     const [vendors, setVendors] = useState([]);
     const [holdings, setHoldings] = useState([]);
     const [balance, setBalance] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
     const load = useCallback(async () => {
-        const [v, h, d] = await Promise.all([
-            api.get("/vendors"),
-            api.get(`/users/${user.user_id}/holdings`),
-            api.get(`/users/${user.user_id}/dashboard`),
-        ]);
-        setVendors(v.data);
-        setHoldings(h.data);
-        setBalance(d.data.balance);
+        try {
+            setLoading(true);
+            setLoadError("");
+            const [v, h, d] = await Promise.all([
+                api.get("/vendors"),
+                api.get(`/users/${user.user_id}/holdings`),
+                api.get(`/users/${user.user_id}/dashboard`),
+            ]);
+            setVendors(v.data || []);
+            setHoldings(h.data || []);
+            setBalance(d.data?.balance || 0);
+        } catch (err) {
+            const parsed = toastApiError(err, "Failed to load trade data");
+            setLoadError(parsed.message || "Failed to load trade data");
+        } finally {
+            setLoading(false);
+        }
     }, [user]);
 
     useEffect(() => {
         load();
     }, [load]);
+
+    if (loadError) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6" data-testid="trade-page">
+                <div className="text-destructive font-medium mb-3">{loadError}</div>
+                <Button onClick={load} variant="outline" size="sm">
+                    Retry Loading
+                </Button>
+            </div>
+        );
+    }
+
+    if (loading && !vendors.length && !holdings.length) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px] gap-2 text-sm text-muted-foreground" data-testid="trade-page">
+                <div className="inline-block w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />{" "}
+                Loading trade desk…
+            </div>
+        );
+    }
 
     return (
         <div data-testid="trade-page">
@@ -154,6 +185,7 @@ function BuyForm({ vendors, balance, userId, onDone }) {
 
     const submit = async (e) => {
         e.preventDefault();
+        if (busy) return;
         const q = parseFloat(qty);
         if (!vendorId) return toast.error("Select a vendor");
         if (!q || q <= 0) return toast.error("Enter a valid quantity");
@@ -377,6 +409,7 @@ function SellForm({ holdings, userId, onDone }) {
 
     const submit = async (e) => {
         e.preventDefault();
+        if (busy) return;
         const q = parseFloat(qty);
         if (!holdingId) return toast.error("Select a holding");
         if (!q || q <= 0) return toast.error("Enter a valid quantity");
@@ -391,6 +424,9 @@ function SellForm({ holdings, userId, onDone }) {
                 `Sold ${fmtGrams(q)} · ${fmtINR(total)} credited`,
             );
             setQty("");
+            if (holding && q >= Number(holding.quantity)) {
+                setHoldingId("");
+            }
             onDone();
         } catch (err) {
             toastApiError(err, "Sell failed");

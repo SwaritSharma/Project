@@ -30,6 +30,7 @@ export default function TopupDialog({ open, onOpenChange, userId, onDone }) {
     const [busy, setBusy] = useState(false);
 
     const submit = async () => {
+        if (busy) return;
         const amt = parseFloat(amount);
         if (!amt || amt < 1) return toast.error("Enter a valid amount");
         try {

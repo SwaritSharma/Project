@@ -21,14 +21,25 @@ export default function VendorBranches() {
     const [pendingDelete, setPendingDelete] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState("");
     const [deleteBusy, setDeleteBusy] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
     const load = useCallback(async () => {
-        const [b, d] = await Promise.all([
-            api.get(`/vendors/${user.vendor_id}/branches`),
-            api.get(`/vendors/${user.vendor_id}/dashboard`),
-        ]);
-        setBranches(b.data || []);
-        setRate(d.data.current_gold_price || 0);
+        try {
+            setLoading(true);
+            setLoadError("");
+            const [b, d] = await Promise.all([
+                api.get(`/vendors/${user.vendor_id}/branches`),
+                api.get(`/vendors/${user.vendor_id}/dashboard`),
+            ]);
+            setBranches(b.data || []);
+            setRate(d.data?.current_gold_price || 0);
+        } catch (err) {
+            const parsed = toastApiError(err, "Failed to load branches data");
+            setLoadError(parsed.message || "Failed to load branches data");
+        } finally {
+            setLoading(false);
+        }
     }, [user]);
 
     useEffect(() => {
@@ -84,6 +95,7 @@ export default function VendorBranches() {
     };
 
     const deleteBranch = async () => {
+        if (deleteBusy) return;
         if (!pendingDelete || !canConfirmDelete) return;
         try {
             setDeleteBusy(true);
@@ -176,7 +188,16 @@ export default function VendorBranches() {
                 </div>
             )}
 
-            {branches.length === 0 ? (
+            {loadError ? (
+                <div className="flex flex-col items-center justify-center min-h-[250px] text-center p-6 border border-dashed border-border rounded-lg bg-card/10">
+                    <div className="text-destructive font-medium mb-3">{loadError}</div>
+                    <Button onClick={load} variant="outline" size="sm">
+                        Retry Loading
+                    </Button>
+                </div>
+            ) : loading ? (
+                <div className="text-sm text-muted-foreground py-10">Loading branches…</div>
+            ) : branches.length === 0 ? (
                 <EmptyState
                     icon={Building2}
                     title="No branches yet"

@@ -5,9 +5,11 @@ import com.personal.project.service.PaymentService;
 
 import com.personal.project.constants.PaymentConstants;
 import com.personal.project.dto.WalletTopupRequest;
+import com.personal.project.dto.UserDTO;
 import com.personal.project.entity.User;
 import com.personal.project.exception.InvalidQuantityException;
 import com.personal.project.exception.UserNotFoundException;
+import com.personal.project.mapper.UserMapper;
 import com.personal.project.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.cache.annotation.CacheEvict;
@@ -28,9 +30,13 @@ public class WalletServiceImpl
     private final PaymentService
             paymentService;
 
+    private final UserMapper
+            userMapper;
+
     public WalletServiceImpl(
             UserRepository userRepository,
-            PaymentService paymentService
+            PaymentService paymentService,
+            UserMapper userMapper
     ) {
 
         this.userRepository =
@@ -38,6 +44,9 @@ public class WalletServiceImpl
 
         this.paymentService =
                 paymentService;
+
+        this.userMapper =
+                userMapper;
     }
 
     @Override
@@ -46,7 +55,7 @@ public class WalletServiceImpl
             USER_DASHBOARD_CACHE,
             USER_PAYMENTS_CACHE
     }, key = "#request.userId")
-    public User topupWallet(
+    public UserDTO topupWallet(
             WalletTopupRequest request
     ) {
 
@@ -67,7 +76,7 @@ public class WalletServiceImpl
 
         User user =
                 userRepository
-                        .findById(
+                        .findByUserIdForUpdate(
                                 request.getUserId()
                         )
                         .orElseThrow(
@@ -100,10 +109,6 @@ public class WalletServiceImpl
         User savedUser = userRepository
                 .save(user);
 
-        if (savedUser.getAddress() != null) {
-            savedUser.getAddress().getCity();
-        }
-
-        return savedUser;
+        return userMapper.toDto(savedUser);
     }
 }

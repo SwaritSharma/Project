@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { api, fmtINR, fmtGrams, toastApiError, getFieldErrors } from "@/lib/api";
-import { Card, PageHeader, Badge, Input, Button } from "@/components/ui-kit";
+import { Card, PageHeader, Badge, Input, Button, Field } from "@/components/ui-kit";
 import { Mail, MapPin, ShieldCheck, Wallet, Coins, TrendingUp, Edit2, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,6 +49,7 @@ export default function Profile() {
     }, [load]);
 
     const handleSave = async () => {
+        if (saving) return;
         try {
             setSaving(true);
             setFieldErrors({});
@@ -90,62 +91,69 @@ export default function Profile() {
                                     .join("")}
                             </div>
                             {isEditing ? (
-                                <div className="space-y-3">
-                                    <Input
-                                        value={editName}
-                                        error={fieldErrors.name}
-                                        onChange={(e) => setEditName(e.target.value)}
-                                        placeholder="Full Name"
-                                    />
-                                    {fieldErrors.name && <FieldError message={fieldErrors.name} />}
-                                    <Input
-                                        value={editEmail}
-                                        error={fieldErrors.email}
-                                        onChange={(e) => setEditEmail(e.target.value)}
-                                        placeholder="Email Address"
-                                    />
-                                    {fieldErrors.email && <FieldError message={fieldErrors.email} />}
+                                <div className="space-y-4">
+                                    <Field label="Full Name" error={fieldErrors.name}>
+                                        <Input
+                                            value={editName}
+                                            error={fieldErrors.name}
+                                            onChange={(e) => setEditName(e.target.value)}
+                                            placeholder="Full Name"
+                                        />
+                                    </Field>
+                                    <Field label="Email Address" error={fieldErrors.email}>
+                                        <Input
+                                            value={editEmail}
+                                            error={fieldErrors.email}
+                                            onChange={(e) => setEditEmail(e.target.value)}
+                                            placeholder="Email Address"
+                                        />
+                                    </Field>
                                     <div className="pt-2 pb-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                                         Primary Address
                                     </div>
-                                    <Input
-                                        value={editStreet}
-                                        error={fieldErrors.street}
-                                        onChange={(e) => setEditStreet(e.target.value)}
-                                        placeholder="Street Address"
-                                    />
-                                    {fieldErrors.street && <FieldError message={fieldErrors.street} />}
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <Field label="Street Address" error={fieldErrors.street}>
                                         <Input
-                                            value={editCity}
-                                            error={fieldErrors.city}
-                                            onChange={(e) => setEditCity(e.target.value)}
-                                            placeholder="City"
+                                            value={editStreet}
+                                            error={fieldErrors.street}
+                                            onChange={(e) => setEditStreet(e.target.value)}
+                                            placeholder="Street Address"
                                         />
-                                        {fieldErrors.city && <FieldError message={fieldErrors.city} />}
-                                        <Input
-                                            value={editState}
-                                            error={fieldErrors.state}
-                                            onChange={(e) => setEditState(e.target.value)}
-                                            placeholder="State"
-                                        />
-                                        {fieldErrors.state && <FieldError message={fieldErrors.state} />}
+                                    </Field>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <Field label="City" error={fieldErrors.city}>
+                                            <Input
+                                                value={editCity}
+                                                error={fieldErrors.city}
+                                                onChange={(e) => setEditCity(e.target.value)}
+                                                placeholder="City"
+                                            />
+                                        </Field>
+                                        <Field label="State" error={fieldErrors.state}>
+                                            <Input
+                                                value={editState}
+                                                error={fieldErrors.state}
+                                                onChange={(e) => setEditState(e.target.value)}
+                                                placeholder="State"
+                                            />
+                                        </Field>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Input
-                                            value={editPostalCode}
-                                            error={fieldErrors.postalCode}
-                                            onChange={(e) => setEditPostalCode(e.target.value)}
-                                            placeholder="Postal Code"
-                                        />
-                                        {fieldErrors.postalCode && <FieldError message={fieldErrors.postalCode} />}
-                                        <Input
-                                            value={editCountry}
-                                            error={fieldErrors.country}
-                                            onChange={(e) => setEditCountry(e.target.value)}
-                                            placeholder="Country"
-                                        />
-                                        {fieldErrors.country && <FieldError message={fieldErrors.country} />}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <Field label="Postal Code" error={fieldErrors.postalCode}>
+                                            <Input
+                                                value={editPostalCode}
+                                                error={fieldErrors.postalCode}
+                                                onChange={(e) => setEditPostalCode(e.target.value)}
+                                                placeholder="Postal Code"
+                                            />
+                                        </Field>
+                                        <Field label="Country" error={fieldErrors.country}>
+                                            <Input
+                                                value={editCountry}
+                                                error={fieldErrors.country}
+                                                onChange={(e) => setEditCountry(e.target.value)}
+                                                placeholder="Country"
+                                            />
+                                        </Field>
                                     </div>
                                     <div className="flex gap-2 mt-2">
                                         <button onClick={handleSave} disabled={saving} className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 transition">
@@ -217,10 +225,6 @@ export default function Profile() {
             </div>
         </div>
     );
-}
-
-function FieldError({ message }) {
-    return <div className="text-[11px] text-destructive mt-1" role="alert">{message}</div>;
 }
 
 function Stat({ icon: Icon, label, value, accent }) {

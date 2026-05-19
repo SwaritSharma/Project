@@ -37,7 +37,7 @@ public class Vendor {
     @Column(name = "contact_person_name")
     private String contactPersonName;
 
-    @Column(name = "contact_email")
+    @Column(name = "contact_email", nullable = false, unique = true)
     private String contactEmail;
 
     @Column(name = "contact_phone")

@@ -5,6 +5,7 @@ import com.personal.project.constants.PaymentConstants;
 import com.personal.project.constants.TransactionConstants;
 import com.personal.project.dto.BuyPhysicalGoldRequest;
 import com.personal.project.dto.ConvertToPhysicalGoldRequest;
+import com.personal.project.dto.PhysicalGoldDTO;
 import com.personal.project.entity.Address;
 import com.personal.project.entity.PhysicalGoldTransaction;
 import com.personal.project.entity.User;
@@ -150,6 +151,9 @@ class PhysicalGoldServiceImplTest {
         convertRequest.setQuantity(
                 new BigDecimal("1")
         );
+
+        lenient().when(vendorBranchRepository.findByBranchIdForUpdate(anyInt()))
+                 .thenReturn(Optional.of(branch));
     }
 
     // =========================================
@@ -162,7 +166,7 @@ class PhysicalGoldServiceImplTest {
         stubPhysicalGoldMapper();
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.of(user)
         );
@@ -202,7 +206,7 @@ class PhysicalGoldServiceImplTest {
                         invocation.getArgument(0)
         );
 
-        PhysicalGoldTransaction transaction =
+        PhysicalGoldDTO transaction =
                 physicalGoldService.buyPhysicalGold(
                         buyRequest
                 );
@@ -263,7 +267,7 @@ class PhysicalGoldServiceImplTest {
     void buyPhysicalGold_ShouldThrowUserNotFoundException() {
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.empty()
         );
@@ -281,7 +285,7 @@ class PhysicalGoldServiceImplTest {
     void buyPhysicalGold_ShouldThrowVendorNotFoundException() {
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.of(user)
         );
@@ -305,7 +309,7 @@ class PhysicalGoldServiceImplTest {
     void buyPhysicalGold_ShouldThrowAddressNotFoundException() {
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.of(user)
         );
@@ -339,7 +343,7 @@ class PhysicalGoldServiceImplTest {
         );
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.of(user)
         );
@@ -383,7 +387,7 @@ class PhysicalGoldServiceImplTest {
         stubPhysicalGoldMapper();
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.of(user)
         );
@@ -408,7 +412,7 @@ class PhysicalGoldServiceImplTest {
         );
 
         when(
-                holdingRepository.findById(1)
+                holdingRepository.findByHoldingIdForUpdate(1)
         ).thenReturn(
                 Optional.of(holding)
         );
@@ -445,7 +449,7 @@ class PhysicalGoldServiceImplTest {
                         invocation.getArgument(0)
         );
 
-        PhysicalGoldTransaction transaction =
+        PhysicalGoldDTO transaction =
                 physicalGoldService.convertToPhysicalGold(
                         convertRequest
                 );
@@ -507,7 +511,7 @@ class PhysicalGoldServiceImplTest {
     void convertToPhysicalGold_ShouldThrowUserNotFoundException() {
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.empty()
         );
@@ -527,7 +531,7 @@ class PhysicalGoldServiceImplTest {
         user.setAddress(null);
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.of(user)
         );
@@ -545,13 +549,13 @@ class PhysicalGoldServiceImplTest {
     void convertToPhysicalGold_ShouldThrowHoldingNotFoundException() {
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.of(user)
         );
 
         when(
-                holdingRepository.findById(1)
+                holdingRepository.findByHoldingIdForUpdate(1)
         ).thenReturn(
                 Optional.empty()
         );
@@ -569,7 +573,7 @@ class PhysicalGoldServiceImplTest {
     void convertToPhysicalGold_ShouldThrowUnauthorizedHoldingAccessException() {
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.of(user)
         );
@@ -591,7 +595,7 @@ class PhysicalGoldServiceImplTest {
         );
 
         when(
-                holdingRepository.findById(1)
+                holdingRepository.findByHoldingIdForUpdate(1)
         ).thenReturn(
                 Optional.of(holding)
         );
@@ -609,7 +613,7 @@ class PhysicalGoldServiceImplTest {
     void convertToPhysicalGold_ShouldThrowAddressNotFoundException_WhenDeliveryAddressMissing() {
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.of(user)
         );
@@ -626,7 +630,7 @@ class PhysicalGoldServiceImplTest {
         );
 
         when(
-                holdingRepository.findById(1)
+                holdingRepository.findByHoldingIdForUpdate(1)
         ).thenReturn(
                 Optional.of(holding)
         );
@@ -650,7 +654,7 @@ class PhysicalGoldServiceImplTest {
     void convertToPhysicalGold_ShouldThrowInsufficientHoldingQuantityException() {
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.of(user)
         );
@@ -673,7 +677,7 @@ class PhysicalGoldServiceImplTest {
         );
 
         when(
-                holdingRepository.findById(1)
+                holdingRepository.findByHoldingIdForUpdate(1)
         ).thenReturn(
                 Optional.of(holding)
         );
@@ -693,7 +697,7 @@ class PhysicalGoldServiceImplTest {
         stubPhysicalGoldMapper();
 
         when(
-                userRepository.findById(1)
+                userRepository.findByUserIdForUpdate(1)
         ).thenReturn(
                 Optional.of(user)
         );
@@ -718,7 +722,7 @@ class PhysicalGoldServiceImplTest {
         );
 
         when(
-                holdingRepository.findById(1)
+                holdingRepository.findByHoldingIdForUpdate(1)
         ).thenReturn(
                 Optional.of(holding)
         );
@@ -771,5 +775,16 @@ class PhysicalGoldServiceImplTest {
                 invocation.getArgument(3),
                 invocation.getArgument(4)
         ));
+
+        when(
+                physicalGoldMapper.toDto(any(PhysicalGoldTransaction.class))
+        ).thenAnswer(invocation -> {
+            PhysicalGoldTransaction tx = invocation.getArgument(0);
+            PhysicalGoldDTO dto = new PhysicalGoldDTO();
+            dto.setPhysicalTransactionId(tx.getPhysicalTransactionId());
+            dto.setQuantity(tx.getQuantity());
+            dto.setCreatedAt(tx.getCreatedAt());
+            return dto;
+        });
     }
 }

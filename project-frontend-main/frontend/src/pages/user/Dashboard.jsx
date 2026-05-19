@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { api, fmtINR, fmtINR2, fmtGrams, fmtDateTime } from "@/lib/api";
+import { api, fmtINR, fmtINR2, fmtGrams, fmtDateTime, toastApiError } from "@/lib/api";
 import { Card, StatCard, PageHeader, Button, Badge } from "@/components/ui-kit";
 import GoldPriceChart from "@/components/charts/GoldPriceChart";
 import HoldingsDonut, { COLORS } from "@/components/charts/HoldingsDonut";
@@ -32,30 +32,48 @@ export default function UserDashboard() {
     const [livePrice, setLivePrice] = useState(null);
     const [range, setRange] = useState(30);
     const [topupOpen, setTopupOpen] = useState(false);
+    const [loadError, setLoadError] = useState("");
 
     const load = useCallback(async () => {
         if (!user?.user_id) return;
-        const [d, h, t, p, lp] = await Promise.all([
-            api.get(`/users/${user.user_id}/dashboard`),
-            api.get(`/users/${user.user_id}/holdings`),
-            api.get(`/users/${user.user_id}/transactions`),
-            api.get(`/gold/price-history?days=${range}`),
-            api.get(`/gold/price`),
-        ]);
-        setDash(d.data);
-        setHoldings(h.data);
-        setTxns(t.data);
-        setPriceHist(p.data);
-        setLivePrice(lp.data);
+        try {
+            setLoadError("");
+            const [d, h, t, p, lp] = await Promise.all([
+                api.get(`/users/${user.user_id}/dashboard`),
+                api.get(`/users/${user.user_id}/holdings`),
+                api.get(`/users/${user.user_id}/transactions`),
+                api.get(`/gold/price-history?days=${range}`),
+                api.get(`/gold/price`),
+            ]);
+            setDash(d.data);
+            setHoldings(h.data || []);
+            setTxns(t.data || []);
+            setPriceHist(p.data || []);
+            setLivePrice(lp.data || null);
+        } catch (err) {
+            const parsed = toastApiError(err, "Failed to load dashboard data");
+            setLoadError(parsed.message || "Failed to load dashboard data");
+        }
     }, [user, range]);
 
     useEffect(() => {
         load();
     }, [load]);
 
+    if (loadError) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6">
+                <div className="text-destructive font-medium mb-3">{loadError}</div>
+                <Button onClick={load} variant="outline" size="sm">
+                    Retry Loading
+                </Button>
+            </div>
+        );
+    }
+
     if (!dash) {
         return (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center min-h-[400px] gap-2 text-sm text-muted-foreground">
                 <Activity className="w-4 h-4 animate-spin text-primary" />{" "}
                 Loading portfolio…
             </div>

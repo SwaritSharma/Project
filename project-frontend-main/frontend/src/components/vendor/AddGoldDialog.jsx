@@ -11,6 +11,7 @@ export default function AddGoldDialog({ open, onOpenChange, vendorId, onDone }) 
 
     const submit = async (e) => {
         e.preventDefault();
+        if (busy) return;
         if (!branchId) {
             toast.error("Please enter a Branch ID");
             return;

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { api, fmtINR, fmtGrams } from "@/lib/api";
+import { api, fmtINR, fmtGrams, toastApiError } from "@/lib/api";
 import { Card, PageHeader, Button, Badge, EmptyState, Input } from "@/components/ui-kit";
 import { Link } from "react-router-dom";
 import { Coins, MapPin, ArrowLeftRight, Boxes } from "lucide-react";
@@ -9,6 +9,7 @@ export default function Holdings() {
     const { user } = useAuth();
     const [holdings, setHoldings] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
     const [q, setQ] = useState("");
     const [sortOrder, setSortOrder] = useState("newest");
@@ -16,9 +17,17 @@ export default function Holdings() {
     const PAGE_SIZE = 6;
 
     const load = useCallback(async () => {
-        const { data } = await api.get(`/users/${user.user_id}/holdings`);
-        setHoldings(data);
-        setLoading(false);
+        try {
+            setLoading(true);
+            setLoadError("");
+            const { data } = await api.get(`/users/${user.user_id}/holdings`);
+            setHoldings(data || []);
+        } catch (err) {
+            const parsed = toastApiError(err, "Failed to load holdings");
+            setLoadError(parsed.message || "Failed to load holdings");
+        } finally {
+            setLoading(false);
+        }
     }, [user]);
 
     useEffect(() => {
@@ -96,7 +105,14 @@ export default function Holdings() {
                 </div>
             )}
 
-            {loading ? (
+            {loadError ? (
+                <div className="flex flex-col items-center justify-center min-h-[250px] text-center p-6 border border-dashed border-border rounded-lg bg-card/10">
+                    <div className="text-destructive font-medium mb-3">{loadError}</div>
+                    <Button onClick={load} variant="outline" size="sm">
+                        Retry Loading
+                    </Button>
+                </div>
+            ) : loading ? (
                 <div className="text-sm text-muted-foreground">Loading…</div>
             ) : holdings.length === 0 ? (
                 <EmptyState

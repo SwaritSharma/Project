@@ -8,6 +8,7 @@ import com.personal.project.service.PaymentService;
 import com.personal.project.constants.PaymentConstants;
 import com.personal.project.constants.TransactionConstants;
 import com.personal.project.dto.BuyVirtualGoldRequest;
+import com.personal.project.dto.HoldingDTO;
 import com.personal.project.dto.SellVirtualGoldRequest;
 import com.personal.project.entity.User;
 import com.personal.project.entity.Vendor;
@@ -111,7 +112,7 @@ public class VirtualGoldServiceImpl
             @CacheEvict(cacheNames = {USER_DASHBOARD_CACHE, USER_HOLDINGS_CACHE, USER_TRANSACTIONS_CACHE, USER_PAYMENTS_CACHE}, key = "#request.userId"),
             @CacheEvict(cacheNames = {VENDOR_DASHBOARD_CACHE, VENDOR_BRANCHES_CACHE, VENDOR_TRANSACTIONS_CACHE, VENDORS_CACHE}, key = "#request.vendorId")
     })
-    public VirtualGoldHolding
+    public HoldingDTO
     buyVirtualGold(
             BuyVirtualGoldRequest request
     ) {
@@ -133,7 +134,7 @@ public class VirtualGoldServiceImpl
 
         User user =
                 userRepository
-                        .findById(
+                        .findByUserIdForUpdate(
                                 request.getUserId()
                         )
                         .orElseThrow(
@@ -171,6 +172,9 @@ public class VirtualGoldServiceImpl
                                 request.getQuantity()
                         );
 
+        allocatedBranch = vendorBranchRepository.findByBranchIdForUpdate(allocatedBranch.getBranchId())
+                .orElseThrow(() -> new BranchAllocationException("Allocated branch not found"));
+
         BigDecimal totalAmount =
                 allocatedBranch
                         .getVendor()
@@ -204,7 +208,7 @@ public class VirtualGoldServiceImpl
 
         VirtualGoldHolding holding =
                 holdingRepository
-                        .findByUserUserIdAndBranchBranchId(
+                        .findByUserUserIdAndBranchBranchIdForUpdate(
                                 user.getUserId(),
                                 allocatedBranch
                                         .getBranchId()
@@ -249,8 +253,13 @@ public class VirtualGoldServiceImpl
         vendorBranchRepository
                 .save(allocatedBranch);
 
-        return holdingRepository
+        VirtualGoldHolding savedHolding = holdingRepository
                 .save(holding);
+
+        return holdingMapper.toDto(
+                savedHolding,
+                allocatedBranch.getVendor().getCurrentGoldPrice()
+        );
     }
 
     @Override
@@ -259,7 +268,7 @@ public class VirtualGoldServiceImpl
             @CacheEvict(cacheNames = {USER_DASHBOARD_CACHE, USER_HOLDINGS_CACHE, USER_TRANSACTIONS_CACHE, USER_PAYMENTS_CACHE}, key = "#request.userId"),
             @CacheEvict(cacheNames = {VENDOR_DASHBOARD_CACHE, VENDOR_BRANCHES_CACHE, VENDOR_TRANSACTIONS_CACHE, VENDORS_CACHE}, allEntries = true)
     })
-    public VirtualGoldHolding
+    public HoldingDTO
     sellVirtualGold(
             SellVirtualGoldRequest request
     ) {
@@ -281,7 +290,7 @@ public class VirtualGoldServiceImpl
 
         User user =
                 userRepository
-                        .findById(
+                        .findByUserIdForUpdate(
                                 request.getUserId()
                         )
                         .orElseThrow(
@@ -293,7 +302,7 @@ public class VirtualGoldServiceImpl
 
         VirtualGoldHolding holding =
                 holdingRepository
-                        .findById(
+                        .findByHoldingIdForUpdate(
                                 request.getHoldingId()
                         )
                         .orElseThrow(
@@ -330,7 +339,8 @@ public class VirtualGoldServiceImpl
         }
 
         VendorBranch branch =
-                holding.getBranch();
+                vendorBranchRepository.findByBranchIdForUpdate(holding.getBranch().getBranchId())
+                        .orElseThrow(() -> new BranchAllocationException("Branch not found"));
 
         BigDecimal totalAmount =
                 branch.getVendor()
@@ -386,15 +396,24 @@ public class VirtualGoldServiceImpl
                         .compareTo(BigDecimal.ZERO)
                         == 0
         ) {
+            HoldingDTO dto = holdingMapper.toDto(
+                    holding,
+                    branch.getVendor().getCurrentGoldPrice()
+            );
 
             holdingRepository.delete(
                     holding
             );
 
-            return holding;
+            return dto;
         }
 
-        return holdingRepository
+        VirtualGoldHolding savedHolding = holdingRepository
                 .save(holding);
+
+        return holdingMapper.toDto(
+                savedHolding,
+                branch.getVendor().getCurrentGoldPrice()
+        );
     }
 }

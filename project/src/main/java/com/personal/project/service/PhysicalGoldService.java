@@ -2,16 +2,15 @@ package com.personal.project.service;
 
 import com.personal.project.dto.BuyPhysicalGoldRequest;
 import com.personal.project.dto.ConvertToPhysicalGoldRequest;
-import com.personal.project.entity.PhysicalGoldTransaction;
+import com.personal.project.dto.PhysicalGoldDTO;
 
 public interface PhysicalGoldService {
 
-    PhysicalGoldTransaction buyPhysicalGold(
+    PhysicalGoldDTO buyPhysicalGold(
             BuyPhysicalGoldRequest request
     );
 
-    PhysicalGoldTransaction
-    convertToPhysicalGold(
+    PhysicalGoldDTO convertToPhysicalGold(
             ConvertToPhysicalGoldRequest request
     );
 }

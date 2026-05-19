@@ -21,6 +21,7 @@ export default function AddBranchDialog({ open, onOpenChange, vendorId, onDone }
 
     const submit = async (e) => {
         e.preventDefault();
+        if (busy) return;
         if (!form.street || !form.city || !form.state || !form.postal_code) {
             toast.error("Please fill all address fields");
             return;

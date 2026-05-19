@@ -66,8 +66,7 @@ class WalletControllerTest {
         dto.setEmail("pradeep.kumar@example.in");
         dto.setBalance(new BigDecimal("1500.00"));
 
-        when(walletService.topupWallet(any(WalletTopupRequest.class))).thenReturn(user);
-        when(userMapper.toDto(user)).thenReturn(dto);
+        when(walletService.topupWallet(any(WalletTopupRequest.class))).thenReturn(dto);
 
         mockMvc.perform(post("/wallet/topup")
                         .contentType(MediaType.APPLICATION_JSON)

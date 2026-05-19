@@ -187,15 +187,37 @@ export default function UserLayout() {
                             <LogOut className="w-4 h-4" />
                         </button>
                     </div>
-                </header>
-
-                <main className="flex-1 p-4 md:p-8 relative">
+                </header>                <main className="flex-1 p-4 md:p-8 relative pb-20 md:pb-8">
                     <div className="absolute inset-0 bg-grid bg-grid-fade opacity-40 pointer-events-none" />
                     <div className="relative max-w-[1600px] mx-auto animate-fade-in">
                         <Outlet />
                     </div>
                 </main>
             </div>
+
+            {/* Mobile Bottom Navigation Bar */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/85 backdrop-blur-xl border-t border-border flex items-center justify-around py-2 px-1">
+                {navItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <NavLink
+                            key={item.to}
+                            to={item.to}
+                            end={item.end}
+                            data-testid={`nav-mobile-${item.label.toLowerCase().replace(/[/\s]+/g, "-")}`}
+                            className={({ isActive }) =>
+                                cn(
+                                    "flex flex-col items-center justify-center gap-0.5 text-muted-foreground transition",
+                                    isActive ? "text-primary font-medium" : "hover:text-foreground"
+                                )
+                            }
+                        >
+                            <Icon className="w-5 h-5" />
+                            <span className="text-[10px] leading-none">{item.label}</span>
+                        </NavLink>
+                    );
+                })}
+            </nav>
         </div>
     );
 }

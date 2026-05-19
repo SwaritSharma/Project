@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { api, fmtINR, fmtGrams, fmtDateTime } from "@/lib/api";
-import { Card, PageHeader, Input, Badge, EmptyState } from "@/components/ui-kit";
+import { api, fmtINR, fmtGrams, fmtDateTime, toastApiError } from "@/lib/api";
+import { Card, PageHeader, Input, Badge, EmptyState, Button } from "@/components/ui-kit";
 import { Search, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -10,11 +10,22 @@ export default function VendorTransactions() {
     const [txns, setTxns] = useState([]);
     const [q, setQ] = useState("");
     const [page, setPage] = useState(1);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const PAGE_SIZE = 10;
 
     const load = useCallback(async () => {
-        const { data } = await api.get(`/vendors/${user.vendor_id}/transactions`);
-        setTxns(data);
+        try {
+            setLoading(true);
+            setLoadError("");
+            const { data } = await api.get(`/vendors/${user.vendor_id}/transactions`);
+            setTxns(data || []);
+        } catch (err) {
+            const parsed = toastApiError(err, "Failed to load transactions history");
+            setLoadError(parsed.message || "Failed to load transactions history");
+        } finally {
+            setLoading(false);
+        }
     }, [user]);
 
     useEffect(() => {
@@ -66,7 +77,16 @@ export default function VendorTransactions() {
                 }
             />
 
-            {filteredTxns.length === 0 ? (
+            {loadError ? (
+                <div className="flex flex-col items-center justify-center min-h-[250px] text-center p-6 border border-dashed border-border rounded-lg bg-card/10">
+                    <div className="text-destructive font-medium mb-3">{loadError}</div>
+                    <Button onClick={load} variant="outline" size="sm">
+                        Retry Loading
+                    </Button>
+                </div>
+            ) : loading ? (
+                <div className="text-sm text-muted-foreground py-10">Loading transactions…</div>
+            ) : filteredTxns.length === 0 ? (
                 <EmptyState
                     icon={Receipt}
                     title="No transactions found"

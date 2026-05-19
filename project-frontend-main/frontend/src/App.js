@@ -4,7 +4,7 @@ import "./index.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ThemeProvider } from "@/lib/theme";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 import Landing from "@/pages/Landing";
 import About from "@/pages/About";
@@ -56,7 +56,6 @@ function App() {
                 <BrowserRouter>
                     <Toaster
                         position="top-right"
-                        theme="dark"
                         richColors
                         closeButton
                     />
