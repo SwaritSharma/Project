@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Modal, Field, Input, Button } from "@/components/ui-kit";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, toastApiError } from "@/lib/api";
 import { Coins, Plus } from "lucide-react";
 
 export default function AddGoldDialog({ open, onOpenChange, vendorId, onDone }) {
@@ -32,7 +32,7 @@ export default function AddGoldDialog({ open, onOpenChange, vendorId, onDone }) 
             onOpenChange(false);
             onDone?.();
         } catch (err) {
-            toast.error(err.response?.data?.detail || "Failed to add gold");
+            toastApiError(err, "Failed to add gold");
         } finally {
             setBusy(false);
         }

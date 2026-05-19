@@ -1,42 +1,66 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { api, fmtINR2, fmtGrams } from "@/lib/api";
+import { api, fmtINR2, fmtGrams, toastApiError, getFieldErrors } from "@/lib/api";
 import { Card, PageHeader, Badge, Button, Field, Input } from "@/components/ui-kit";
 import { Mail, Phone, Globe, Store, User, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+
+const normalizePhoneInput = (value) => String(value || "").replace(/\D/g, "").slice(0, 10);
+const isTenDigitPhone = (value) => value.length === 10 && value.split("").every((char) => char >= "0" && char <= "9");
 
 export default function VendorProfile() {
     const { user } = useAuth();
     const [dash, setDash] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({});
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [loadError, setLoadError] = useState("");
+    const [saving, setSaving] = useState(false);
 
     const load = useCallback(async () => {
-        const { data } = await api.get(`/vendors/${user.vendor_id}/dashboard`);
+        try {
+            setLoadError("");
+            const { data } = await api.get(`/vendors/${user.vendor_id}/dashboard`);
         setDash(data);
         setFormData({
             contactPersonName: data.contact_person_name,
             contactEmail: data.contact_email,
-            contactPhone: data.contact_phone,
+            contactPhone: normalizePhoneInput(data.contact_phone),
             description: data.description,
-            websiteUrl: data.websiteUrl || "",
+            websiteUrl: data.website_url || data.websiteUrl || "",
         });
+        } catch (err) {
+            setLoadError(toastApiError(err, "Failed to load vendor profile").message);
+        }
     }, [user]);
 
     useEffect(() => {
         load();
     }, [load]);
 
-    if (!dash) return <div className="text-sm text-muted-foreground">Loading…</div>;
+    if (!dash) return <div className="text-sm text-muted-foreground">{loadError || "Loading..."}</div>;
 
     const handleSave = async () => {
         try {
-            await api.put(`/vendors/${user.vendor_id}/profile`, formData);
-            toast.success("Profile updated successfully!");
+            setSaving(true);
+            setFieldErrors({});
+            const normalizedPhone = normalizePhoneInput(formData.contactPhone);
+            if (!isTenDigitPhone(normalizedPhone)) {
+                const message = "Contact phone must be exactly 10 digits";
+                setFieldErrors({ contactPhone: message });
+                toast.error(message);
+                return;
+            }
+            const payload = { ...formData, contactPhone: normalizedPhone };
+            await api.put("/vendors/" + user.vendor_id + "/profile", payload);
+            toast.success("Profile updated successfully");
             setIsEditing(false);
             load();
         } catch (err) {
-            toast.error(err.response?.data?.detail || "Failed to update profile");
+            setFieldErrors(getFieldErrors(err));
+            toastApiError(err, "Failed to update profile");
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -63,9 +87,10 @@ export default function VendorProfile() {
                         </div>
                         {isEditing ? (
                             <div className="mt-2">
-                                <Field label="Description">
+                                <Field label="Description" error={fieldErrors.description}>
                                     <Input
                                         value={formData.description || ""}
+                                        error={fieldErrors.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         placeholder="Vendor description..."
                                     />
@@ -73,7 +98,7 @@ export default function VendorProfile() {
                             </div>
                         ) : (
                             <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-                                {dash.description}
+                                {dash.description || "No description provided"}
                             </p>
                         )}
                     </div>
@@ -89,7 +114,7 @@ export default function VendorProfile() {
                         {isEditing ? (
                             <div className="flex gap-2">
                                 <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
-                                <Button size="sm" onClick={handleSave}>Save Changes</Button>
+                                <Button size="sm" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
                             </div>
                         ) : (
                             <Button size="sm" variant="ghost" onClick={() => setIsEditing(true)}>Edit Profile</Button>
@@ -97,30 +122,37 @@ export default function VendorProfile() {
                     </div>
                     {isEditing ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Field label="Contact Person">
+                            <Field label="Contact Person" error={fieldErrors.contactPersonName}>
                                 <Input
                                     value={formData.contactPersonName || ""}
+                                    error={fieldErrors.contactPersonName}
                                     onChange={(e) => setFormData({ ...formData, contactPersonName: e.target.value })}
                                 />
                             </Field>
-                            <Field label="Email">
+                            <Field label="Email" error={fieldErrors.contactEmail}>
                                 <Input
                                     type="email"
                                     value={formData.contactEmail || ""}
+                                    error={fieldErrors.contactEmail}
                                     onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
                                 />
                             </Field>
-                            <Field label="Phone">
+                            <Field label="Phone" error={fieldErrors.contactPhone}>
                                 <Input
                                     type="tel"
                                     value={formData.contactPhone || ""}
-                                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                                    error={fieldErrors.contactPhone}
+                                    inputMode="numeric"
+                                    pattern="\d{10}"
+                                    maxLength={10}
+                                    onChange={(e) => setFormData({ ...formData, contactPhone: normalizePhoneInput(e.target.value) })}
                                 />
                             </Field>
-                            <Field label="Website URL">
+                            <Field label="Website URL" error={fieldErrors.websiteUrl}>
                                 <Input
                                     type="url"
                                     value={formData.websiteUrl || ""}
+                                    error={fieldErrors.websiteUrl}
                                     onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
                                 />
                             </Field>
@@ -130,7 +162,7 @@ export default function VendorProfile() {
                             <InfoRow icon={User} label="Contact person" value={dash.contact_person_name} />
                             <InfoRow icon={Mail} label="Email" value={dash.contact_email} />
                             <InfoRow icon={Phone} label="Phone" value={dash.contact_phone} />
-                            <InfoRow icon={Globe} label="Website" value={dash.website_url} link />
+                            <InfoRow icon={Globe} label="Website" value={dash.website_url || dash.websiteUrl || "-"} link />
                         </div>
                     )}
                 </Card>

@@ -1,14 +1,17 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { api, fmtINR, fmtGrams } from "@/lib/api";
+import { api, fmtINR, fmtGrams, toastApiError, getFieldErrors } from "@/lib/api";
 import { Card, PageHeader, Badge, Input, Button } from "@/components/ui-kit";
 import { Mail, MapPin, ShieldCheck, Wallet, Coins, TrendingUp, Edit2, Check, X } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export default function Profile() {
     const { user } = useAuth();
     const [dash, setDash] = useState(null);
     const [addresses, setAddresses] = useState([]);
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [loadError, setLoadError] = useState("");
+    const [saving, setSaving] = useState(false);
     
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState("");
@@ -20,10 +23,12 @@ export default function Profile() {
     const [editCountry, setEditCountry] = useState("India");
 
     const load = useCallback(async () => {
-        const d = await api.get(`/users/${user.user_id}/dashboard`);
-        const a = await api.get(`/users/${user.user_id}/addresses`);
-        setDash(d.data);
-        setAddresses(a.data);
+        try {
+            setLoadError("");
+            const d = await api.get(`/users/${user.user_id}/dashboard`);
+            const a = await api.get(`/users/${user.user_id}/addresses`);
+            setDash(d.data);
+            setAddresses(a.data || []);
         setEditName(d.data.name || "");
         setEditEmail(d.data.email || "");
         if (a.data && a.data.length > 0) {
@@ -31,8 +36,11 @@ export default function Profile() {
             setEditStreet(addr.street || "");
             setEditCity(addr.city || "");
             setEditState(addr.state || "");
-            setEditPostalCode(addr.postalCode || "");
+            setEditPostalCode(addr.postal_code || addr.postalCode || "");
             setEditCountry(addr.country || "India");
+            }
+        } catch (err) {
+            setLoadError(toastApiError(err, "Failed to load profile").message);
         }
     }, [user]);
 
@@ -42,6 +50,8 @@ export default function Profile() {
 
     const handleSave = async () => {
         try {
+            setSaving(true);
+            setFieldErrors({});
             await api.put(`/users/${user.user_id}/profile`, {
                 name: editName,
                 email: editEmail,
@@ -51,15 +61,18 @@ export default function Profile() {
                 postalCode: editPostalCode,
                 country: editCountry
             });
-            toast.success("Profile updated!");
+            toast.success("Profile updated successfully");
             setIsEditing(false);
             load();
         } catch (e) {
-            toast.error("Failed to update profile");
+            setFieldErrors(getFieldErrors(e));
+            toastApiError(e, "Failed to update profile");
+        } finally {
+            setSaving(false);
         }
     };
 
-    if (!dash) return <div className="text-sm text-muted-foreground">Loading…</div>;
+    if (!dash) return <div className="text-sm text-muted-foreground">{loadError || "Loading..."}</div>;
 
     return (
         <div data-testid="profile-page">
@@ -80,49 +93,63 @@ export default function Profile() {
                                 <div className="space-y-3">
                                     <Input
                                         value={editName}
+                                        error={fieldErrors.name}
                                         onChange={(e) => setEditName(e.target.value)}
                                         placeholder="Full Name"
                                     />
+                                    {fieldErrors.name && <FieldError message={fieldErrors.name} />}
                                     <Input
                                         value={editEmail}
+                                        error={fieldErrors.email}
                                         onChange={(e) => setEditEmail(e.target.value)}
                                         placeholder="Email Address"
                                     />
+                                    {fieldErrors.email && <FieldError message={fieldErrors.email} />}
                                     <div className="pt-2 pb-1 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                                         Primary Address
                                     </div>
                                     <Input
                                         value={editStreet}
+                                        error={fieldErrors.street}
                                         onChange={(e) => setEditStreet(e.target.value)}
                                         placeholder="Street Address"
                                     />
+                                    {fieldErrors.street && <FieldError message={fieldErrors.street} />}
                                     <div className="grid grid-cols-2 gap-2">
                                         <Input
                                             value={editCity}
+                                            error={fieldErrors.city}
                                             onChange={(e) => setEditCity(e.target.value)}
                                             placeholder="City"
                                         />
+                                        {fieldErrors.city && <FieldError message={fieldErrors.city} />}
                                         <Input
                                             value={editState}
+                                            error={fieldErrors.state}
                                             onChange={(e) => setEditState(e.target.value)}
                                             placeholder="State"
                                         />
+                                        {fieldErrors.state && <FieldError message={fieldErrors.state} />}
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <Input
                                             value={editPostalCode}
+                                            error={fieldErrors.postalCode}
                                             onChange={(e) => setEditPostalCode(e.target.value)}
                                             placeholder="Postal Code"
                                         />
+                                        {fieldErrors.postalCode && <FieldError message={fieldErrors.postalCode} />}
                                         <Input
                                             value={editCountry}
+                                            error={fieldErrors.country}
                                             onChange={(e) => setEditCountry(e.target.value)}
                                             placeholder="Country"
                                         />
+                                        {fieldErrors.country && <FieldError message={fieldErrors.country} />}
                                     </div>
                                     <div className="flex gap-2 mt-2">
-                                        <button onClick={handleSave} className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 transition">
-                                            <Check className="w-3.5 h-3.5" /> Save
+                                        <button onClick={handleSave} disabled={saving} className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 transition">
+                                            <Check className="w-3.5 h-3.5" /> {saving ? "Saving..." : "Save"}
                                         </button>
                                         <button onClick={() => setIsEditing(false)} className="flex items-center gap-1 text-xs border border-border px-3 py-1.5 rounded hover:bg-secondary transition">
                                             <X className="w-3.5 h-3.5" /> Cancel
@@ -168,7 +195,7 @@ export default function Profile() {
                                     </div>
                                     <div className="mt-1.5 text-sm">{a.street}</div>
                                     <div className="text-sm text-muted-foreground">
-                                        {a.city}, {a.state} — {a.postal_code}
+                                        {a.city}, {a.state} — {a.postal_code || a.postalCode}
                                     </div>
                                     <div className="text-xs text-muted-foreground mt-1 mono">{a.country}</div>
                                 </div>
@@ -190,6 +217,10 @@ export default function Profile() {
             </div>
         </div>
     );
+}
+
+function FieldError({ message }) {
+    return <div className="text-[11px] text-destructive mt-1" role="alert">{message}</div>;
 }
 
 function Stat({ icon: Icon, label, value, accent }) {

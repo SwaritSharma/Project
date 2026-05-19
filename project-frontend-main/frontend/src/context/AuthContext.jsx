@@ -2,29 +2,62 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 
 const AuthCtx = createContext(null);
 
+function decodeJwtPayload(token) {
+    try {
+        const payload = token?.split(".")?.[1];
+        if (!payload) return null;
+        const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+        return JSON.parse(window.atob(normalized));
+    } catch (_) {
+        return null;
+    }
+}
+
+function isTokenExpired(token) {
+    const payload = decodeJwtPayload(token);
+    if (!payload?.exp) return false;
+    return payload.exp * 1000 <= Date.now();
+}
+
+function clearStoredAuth() {
+    localStorage.removeItem("dg_token");
+    localStorage.removeItem("dg_user");
+}
+
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
         const raw = localStorage.getItem("dg_user");
-        if (raw) {
-            try {
-                setUser(JSON.parse(raw));
-            } catch (_) {}
+        const token = localStorage.getItem("dg_token");
+        if (!raw || !token || isTokenExpired(token)) {
+            clearStoredAuth();
+            setReady(true);
+            return;
+        }
+
+        try {
+            setUser(JSON.parse(raw));
+        } catch (_) {
+            clearStoredAuth();
         }
         setReady(true);
     }, []);
 
     const login = (loginResp) => {
+        if (!loginResp?.token || isTokenExpired(loginResp.token)) {
+            clearStoredAuth();
+            setUser(null);
+            return;
+        }
         localStorage.setItem("dg_token", loginResp.token);
         localStorage.setItem("dg_user", JSON.stringify(loginResp));
         setUser(loginResp);
     };
 
     const logout = () => {
-        localStorage.removeItem("dg_token");
-        localStorage.removeItem("dg_user");
+        clearStoredAuth();
         setUser(null);
     };
 

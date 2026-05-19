@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Modal, Field, Input, Button } from "@/components/ui-kit";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, toastApiError } from "@/lib/api";
 import { Building2, Plus } from "lucide-react";
 
 const EMPTY = {
@@ -41,7 +41,7 @@ export default function AddBranchDialog({ open, onOpenChange, vendorId, onDone }
             onOpenChange(false);
             onDone?.();
         } catch (err) {
-            toast.error(err.response?.data?.detail || "Add branch failed");
+            toastApiError(err, "Add branch failed");
         } finally {
             setBusy(false);
         }

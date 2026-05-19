@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, getFieldErrors, toastApiError } from "@/lib/api";
 import {
     Coins,
     Lock,
@@ -25,12 +25,16 @@ const STATS = [
     { k: "Settlement", v: "T+0", tone: "accent" },
 ];
 
+const normalizePhoneInput = (value) => value.replace(/\D/g, "").slice(0, 10);
+const isTenDigitPhone = (value) => value.length === 10 && value.split("").every((char) => char >= "0" && char <= "9");
+
 export default function Login() {
     const { login } = useAuth();
     const nav = useNavigate();
     const [role, setRole] = useState("USER");
     const [isRegistering, setIsRegistering] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const submit = async (e) => {
         e.preventDefault();
@@ -43,6 +47,7 @@ export default function Login() {
             : (role === "VENDOR" ? "/vendor/auth/login" : "/user/auth/login");
 
         try {
+            setFieldErrors({});
             setLoading(true);
             let payload = { email, password };
             
@@ -63,7 +68,7 @@ export default function Login() {
                         vendorName: fd.get("vendorName"),
                         contactPersonName: fd.get("contactPersonName"),
                         contactEmail: email,
-                        contactPhone: fd.get("contactPhone"),
+                        contactPhone: normalizePhoneInput(String(fd.get("contactPhone") || "")),
                         password,
                         street: fd.get("street"),
                         city: fd.get("city"),
@@ -73,6 +78,12 @@ export default function Login() {
                         description: fd.get("description") || "",
                         websiteUrl: fd.get("websiteUrl") || "",
                     };
+                    if (!isTenDigitPhone(payload.contactPhone)) {
+                        const message = "Contact phone must be exactly 10 digits";
+                        setFieldErrors({ contactPhone: message });
+                        toast.error(message);
+                        return;
+                    }
                 }
             } else {
                 payload = { email, password };
@@ -83,7 +94,8 @@ export default function Login() {
             toast.success(isRegistering ? `Registered successfully! Welcome, ${data.name}` : `Welcome back, ${data.name}`);
             nav(role === "VENDOR" ? "/vendor" : "/app");
         } catch (err) {
-            toast.error(err.response?.data?.detail || "Login failed");
+            setFieldErrors(getFieldErrors(err));
+            toastApiError(err, isRegistering ? "Registration failed" : "Login failed");
         } finally {
             setLoading(false);
         }
@@ -181,14 +193,14 @@ export default function Login() {
                         >
                             <RoleTab
                                 active={role === "USER"}
-                                onClick={() => setRole("USER")}
+                                onClick={() => { setRole("USER"); setFieldErrors({}); }}
                                 icon={ShieldCheck}
                                 label="Investor"
                                 testId="user-tab"
                             />
                             <RoleTab
                                 active={role === "VENDOR"}
-                                onClick={() => setRole("VENDOR")}
+                                onClick={() => { setRole("VENDOR"); setFieldErrors({}); }}
                                 icon={Store}
                                 label="Vendor"
                                 testId="vendor-tab"
@@ -205,7 +217,7 @@ export default function Login() {
                         {isRegistering && (
                             <>
                                 {role === "USER" && (
-                                    <Field label="Name">
+                                    <Field label="Name" error={fieldErrors.name}>
                                         <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                             <UserIcon className="w-4 h-4 text-muted-foreground" />
                                             <input
@@ -222,33 +234,43 @@ export default function Login() {
                                 
                                 {role === "VENDOR" && (
                                     <>
-                                        <Field label="Vendor Name">
+                                        <Field label="Vendor Name" error={fieldErrors.vendorName}>
                                             <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                                 <Store className="w-4 h-4 text-muted-foreground" />
                                                 <input name="vendorName" type="text" placeholder="Gold Co." required className="flex-1 bg-transparent outline-none text-sm" />
                                             </div>
                                         </Field>
                                         <div className="grid grid-cols-2 gap-3">
-                                            <Field label="Contact Person">
+                                            <Field label="Contact Person" error={fieldErrors.contactPersonName}>
                                                 <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                                     <UserIcon className="w-4 h-4 text-muted-foreground" />
                                                     <input name="contactPersonName" type="text" placeholder="John Doe" required className="flex-1 bg-transparent outline-none text-sm" />
                                                 </div>
                                             </Field>
-                                            <Field label="Phone">
+                                            <Field label="Phone" error={fieldErrors.contactPhone}>
                                                 <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                                     <Phone className="w-4 h-4 text-muted-foreground" />
-                                                    <input name="contactPhone" type="tel" placeholder="+91 9876543210" required className="flex-1 bg-transparent outline-none text-sm" />
+                                                    <input
+                                                        name="contactPhone"
+                                                        type="tel"
+                                                        inputMode="numeric"
+                                                        pattern="\d{10}"
+                                                        maxLength={10}
+                                                        placeholder="9876543210"
+                                                        required
+                                                        onInput={(e) => { e.currentTarget.value = normalizePhoneInput(e.currentTarget.value); }}
+                                                        className="flex-1 bg-transparent outline-none text-sm"
+                                                    />
                                                 </div>
                                             </Field>
                                         </div>
-                                        <Field label="Description (Optional)">
+                                        <Field label="Description (Optional)" error={fieldErrors.description}>
                                             <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                                 <Building2 className="w-4 h-4 text-muted-foreground" />
                                                 <input name="description" type="text" placeholder="Premium Gold Dealer" className="flex-1 bg-transparent outline-none text-sm" />
                                             </div>
                                         </Field>
-                                        <Field label="Website URL (Optional)">
+                                        <Field label="Website URL (Optional)" error={fieldErrors.websiteUrl}>
                                             <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                                 <Globe className="w-4 h-4 text-muted-foreground" />
                                                 <input name="websiteUrl" type="url" placeholder="https://example.com" className="flex-1 bg-transparent outline-none text-sm" />
@@ -258,28 +280,28 @@ export default function Login() {
                                 )}
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    <Field label={role === "VENDOR" ? "Business Street Address" : "Street Address"}>
+                                    <Field label={role === "VENDOR" ? "Business Street Address" : "Street Address"} error={fieldErrors.street}>
                                         <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                             <MapPin className="w-4 h-4 text-muted-foreground" />
                                             <input name="street" type="text" placeholder="123 Main St" required className="flex-1 bg-transparent outline-none text-sm" />
                                         </div>
                                     </Field>
-                                    <Field label="City">
+                                    <Field label="City" error={fieldErrors.city}>
                                         <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                             <input name="city" type="text" placeholder="Mumbai" required className="flex-1 bg-transparent outline-none text-sm" />
                                         </div>
                                     </Field>
-                                    <Field label="State">
+                                    <Field label="State" error={fieldErrors.state}>
                                         <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                             <input name="state" type="text" placeholder="MH" required className="flex-1 bg-transparent outline-none text-sm" />
                                         </div>
                                     </Field>
-                                    <Field label="Postal Code">
+                                    <Field label="Postal Code" error={fieldErrors.postalCode}>
                                         <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                             <input name="postalCode" type="text" placeholder="400001" required className="flex-1 bg-transparent outline-none text-sm" />
                                         </div>
                                     </Field>
-                                    <Field label="Country" className="col-span-2">
+                                    <Field label="Country" className="col-span-2" error={fieldErrors.country}>
                                         <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                             <input name="country" type="text" placeholder="United States" required className="flex-1 bg-transparent outline-none text-sm" />
                                         </div>
@@ -288,7 +310,7 @@ export default function Login() {
                             </>
                         )}
 
-                        <Field label={role === "VENDOR" && isRegistering ? "Contact Email" : "Email"}>
+                        <Field label={role === "VENDOR" && isRegistering ? "Contact Email" : "Email"} error={role === "VENDOR" && isRegistering ? (fieldErrors.contactEmail || fieldErrors.email) : fieldErrors.email}>
                             <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                 <Mail className="w-4 h-4 text-muted-foreground" />
                                 <input
@@ -303,7 +325,7 @@ export default function Login() {
                             </div>
                         </Field>
 
-                        <Field label="Password">
+                        <Field label="Password" error={fieldErrors.password}>
                             <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition">
                                 <Lock className="w-4 h-4 text-muted-foreground" />
                                 <input
@@ -335,14 +357,14 @@ export default function Login() {
                         {isRegistering ? (
                             <span className="text-muted-foreground">
                                 Already have an account?{" "}
-                                <button type="button" onClick={() => setIsRegistering(false)} className="text-primary hover:underline">
+                                <button type="button" onClick={() => { setIsRegistering(false); setFieldErrors({}); }} className="text-primary hover:underline">
                                     Sign in
                                 </button>
                             </span>
                         ) : (
                             <span className="text-muted-foreground">
                                 New here?{" "}
-                                <button type="button" onClick={() => { setIsRegistering(true); }} className="text-primary hover:underline">
+                                <button type="button" onClick={() => { setIsRegistering(true); setFieldErrors({}); }} className="text-primary hover:underline">
                                     Create an account
                                 </button>
                             </span>

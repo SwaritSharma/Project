@@ -31,8 +31,8 @@ export default function Holdings() {
             const term = q.toLowerCase();
             res = res.filter(
                 (h) =>
-                    h.vendor_name.toLowerCase().includes(term) ||
-                    h.branch_address.city.toLowerCase().includes(term)
+                    (h.vendor_name || "").toLowerCase().includes(term) ||
+                    (h.branch_address?.city || "").toLowerCase().includes(term)
             );
         }
         
@@ -151,10 +151,10 @@ export default function Holdings() {
                             <div className="mt-5 flex items-start gap-2 text-xs text-muted-foreground border-t border-border pt-4">
                                 <MapPin className="w-3.5 h-3.5 mt-0.5 text-accent shrink-0" />
                                 <span>
-                                    {h.branch_address.street},{" "}
-                                    {h.branch_address.city},{" "}
-                                    {h.branch_address.state} —{" "}
-                                    {h.branch_address.postal_code}
+                                    {h.branch_address?.street},{" "}
+                                    {h.branch_address?.city},{" "}
+                                    {h.branch_address?.state} —{" "}
+                                    {h.branch_address?.postal_code}
                                 </span>
                             </div>
                             <div className="mt-4 flex gap-2">

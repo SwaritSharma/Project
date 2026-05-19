@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Modal, Field, Input, Button } from "@/components/ui-kit";
 import { toast } from "sonner";
-import { api, fmtINR } from "@/lib/api";
+import { api, fmtINR, toastApiError } from "@/lib/api";
 import {
     Banknote,
     CreditCard,
@@ -44,7 +44,7 @@ export default function TopupDialog({ open, onOpenChange, userId, onDone }) {
             onOpenChange(false);
             onDone?.();
         } catch (err) {
-            toast.error(err.response?.data?.detail || "Topup failed");
+            toastApiError(err, "Topup failed");
         } finally {
             setBusy(false);
         }

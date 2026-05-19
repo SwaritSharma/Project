@@ -208,30 +208,36 @@ export function Modal({ open, onClose, title, subtitle, children, footer, testId
     );
 }
 
-export function Field({ label, children, hint }) {
+export function Field({ label, children, hint, error }) {
     return (
         <label className="block">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 {label}
             </span>
             <div className="mt-1.5">{children}</div>
-            {hint && (
+            {error ? (
+                <span className="block text-[11px] text-destructive mt-1" role="alert">
+                    {error}
+                </span>
+            ) : hint ? (
                 <span className="block text-[11px] text-muted-foreground mt-1">
                     {hint}
                 </span>
-            )}
+            ) : null}
         </label>
     );
 }
 
-export function Input(props) {
+export function Input({ error, className, ...props }) {
     return (
         <input
             {...props}
+            aria-invalid={error ? "true" : undefined}
             className={cn(
                 "w-full px-3 py-2 rounded-lg border border-border bg-background/50 text-sm outline-none",
                 "focus:border-primary focus:ring-2 focus:ring-primary/20 transition",
-                props.className,
+                error && "border-destructive focus:border-destructive focus:ring-destructive/20",
+                className,
             )}
         />
     );

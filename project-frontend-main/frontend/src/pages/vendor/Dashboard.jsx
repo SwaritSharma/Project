@@ -53,7 +53,7 @@ export default function VendorDashboard() {
     if (!dash) return <div className="text-sm text-muted-foreground">Loading…</div>;
 
     const branchData = branches.map((b) => ({
-        name: b.address.city,
+        name: b.address?.city,
         quantity: b.quantity,
     }));
 
@@ -194,16 +194,16 @@ export default function VendorDashboard() {
                                             #{b.branch_id}
                                         </td>
                                         <td className="px-5 py-3">
-                                            <div className="font-medium">{b.address.city}</div>
+                                            <div className="font-medium">{b.address?.city}</div>
                                             <div className="text-xs text-muted-foreground">
-                                                {b.address.state}
+                                                {b.address?.state}
                                             </div>
                                         </td>
                                         <td className="px-5 py-3 text-xs text-muted-foreground max-w-[280px]">
                                             <div className="flex items-start gap-1.5">
                                                 <MapPin className="w-3 h-3 mt-0.5 text-accent shrink-0" />
                                                 <span>
-                                                    {b.address.street} — {b.address.postal_code}
+                                                    {b.address?.street} — {b.address?.postal_code}
                                                 </span>
                                             </div>
                                         </td>

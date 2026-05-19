@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { api, fmtINR, fmtINR2, fmtGrams, fmtDateTime } from "@/lib/api";
+import { api, fmtINR, fmtINR2, fmtGrams, fmtDateTime, toastApiError } from "@/lib/api";
 import { Card, PageHeader, Button, Field, Input, Select, Badge } from "@/components/ui-kit";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -121,8 +121,8 @@ function BuyPhysical({ vendors, addresses, userId, balance, onDone }) {
             const term = q.toLowerCase();
             res = res.filter(
                 (v) =>
-                    v.vendor_name.toLowerCase().includes(term) ||
-                    (v.description && v.description.toLowerCase().includes(term))
+                    (v.vendor_name || "").toLowerCase().includes(term) ||
+                    ((v.description || "").toLowerCase().includes(term))
             );
         }
         
@@ -169,7 +169,7 @@ function BuyPhysical({ vendors, addresses, userId, balance, onDone }) {
             setQty("");
             onDone();
         } catch (err) {
-            toast.error(err.response?.data?.detail || "Order failed");
+            toastApiError(err, "Order failed");
         } finally {
             setBusy(false);
         }
@@ -373,8 +373,8 @@ function ConvertPhysical({ holdings, addresses, userId, onDone }) {
             const term = q.toLowerCase();
             res = res.filter(
                 (h) =>
-                    h.vendor_name.toLowerCase().includes(term) ||
-                    h.branch_address.city.toLowerCase().includes(term)
+                    (h.vendor_name || "").toLowerCase().includes(term) ||
+                    (h.branch_address?.city || "").toLowerCase().includes(term)
             );
         }
         
@@ -419,7 +419,7 @@ function ConvertPhysical({ holdings, addresses, userId, onDone }) {
             setQty("");
             onDone();
         } catch (err) {
-            toast.error(err.response?.data?.detail || "Convert failed");
+            toastApiError(err, "Convert failed");
         } finally {
             setBusy(false);
         }
@@ -614,8 +614,8 @@ function DeliveryList({ deliveries }) {
             const term = q.toLowerCase();
             res = res.filter(
                 (d) =>
-                    d.vendor_name.toLowerCase().includes(term) ||
-                    d.delivery_address.city.toLowerCase().includes(term) ||
+                    (d.vendor_name || "").toLowerCase().includes(term) ||
+                    (d.delivery_address?.city || "").toLowerCase().includes(term) ||
                     String(d.transaction_id).includes(term)
             );
         }
@@ -695,10 +695,10 @@ function DeliveryList({ deliveries }) {
                     <div className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground flex gap-2">
                         <MapPin className="w-3.5 h-3.5 mt-0.5 text-accent shrink-0" />
                         <span>
-                            {d.delivery_address.street},{" "}
-                            {d.delivery_address.city},{" "}
-                            {d.delivery_address.state} —{" "}
-                            {d.delivery_address.postal_code}
+                            {d.delivery_address?.street},{" "}
+                            {d.delivery_address?.city},{" "}
+                            {d.delivery_address?.state} —{" "}
+                            {d.delivery_address?.postal_code}
                         </span>
                     </div>
                     <div className="mt-2 text-xs text-muted-foreground mono">

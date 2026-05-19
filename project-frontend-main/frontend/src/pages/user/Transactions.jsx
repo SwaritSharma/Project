@@ -5,12 +5,23 @@ import { Card, PageHeader, Input, Badge, EmptyState } from "@/components/ui-kit"
 import { Search, Receipt, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const CREDITED_TO_WALLET = "Credited to wallet";
+const DEBITED_FROM_WALLET = "Debited from wallet";
+
+const getPaymentDirection = (payment) => {
+    const value = String(payment?.transaction_type || "").trim();
+    if (value === CREDITED_TO_WALLET) return "credit";
+    if (value === DEBITED_FROM_WALLET) return "debit";
+    return "unknown";
+};
+
 export default function Transactions() {
     const { user } = useAuth();
     const [txns, setTxns] = useState([]);
     const [payments, setPayments] = useState([]);
     const [q, setQ] = useState("");
     const [sortOrder, setSortOrder] = useState("newest");
+    const [paymentDirection, setPaymentDirection] = useState("all");
     const [tab, setTab] = useState("txns");
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 10;
@@ -34,9 +45,9 @@ export default function Transactions() {
             const term = q.toLowerCase();
             res = res.filter(
                 (t) =>
-                    t.vendor_name.toLowerCase().includes(term) ||
-                    t.transaction_type.toLowerCase().includes(term) ||
-                    t.transaction_status.toLowerCase().includes(term),
+                    (t.vendor_name || "").toLowerCase().includes(term) ||
+                    (t.transaction_type || "").toLowerCase().includes(term) ||
+                    (t.transaction_status || "").toLowerCase().includes(term),
             );
         }
         if (sortOrder === "amount-high") res.sort((a, b) => b.amount - a.amount);
@@ -51,20 +62,23 @@ export default function Transactions() {
             const term = q.toLowerCase();
             res = res.filter(
                 (p) =>
-                    p.payment_method.toLowerCase().includes(term) ||
-                    p.payment_status.toLowerCase().includes(term) ||
-                    p.transaction_type.toLowerCase().includes(term)
+                    (p.payment_method || "").toLowerCase().includes(term) ||
+                    (p.payment_status || "").toLowerCase().includes(term) ||
+                    (p.transaction_type || "").toLowerCase().includes(term)
             );
+        }
+        if (paymentDirection !== "all") {
+            res = res.filter((p) => getPaymentDirection(p) === paymentDirection);
         }
         if (sortOrder === "amount-high") res.sort((a, b) => b.amount - a.amount);
         else if (sortOrder === "amount-low") res.sort((a, b) => a.amount - b.amount);
         else res.sort((a, b) => b.payment_id - a.payment_id);
         return res;
-    }, [payments, q, sortOrder]);
+    }, [payments, q, paymentDirection, sortOrder]);
 
     useEffect(() => {
         setPage(1);
-    }, [tab, q, sortOrder]);
+    }, [tab, q, paymentDirection, sortOrder]);
 
     const paginatedTxns = useMemo(() => {
         const start = (page - 1) * PAGE_SIZE;
@@ -107,6 +121,18 @@ export default function Transactions() {
                             <option value="amount-high">Amount: High to Low</option>
                             <option value="amount-low">Amount: Low to High</option>
                         </select>
+                        {tab === "pay" && (
+                            <select
+                                className="flex h-10 w-full sm:w-auto items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                value={paymentDirection}
+                                onChange={(e) => setPaymentDirection(e.target.value)}
+                                data-testid="payment-direction-filter"
+                            >
+                                <option value="all">All directions</option>
+                                <option value="credit">Credit only</option>
+                                <option value="debit">Debit only</option>
+                            </select>
+                        )}
                     </div>
                 }
             />
@@ -163,7 +189,7 @@ export default function Transactions() {
                                         <td className="px-5 py-3">
                                             <div className="font-medium">{t.vendor_name}</div>
                                             <div className="text-xs text-muted-foreground">
-                                                {t.branch_address ? `${t.branch_address.city}, ${t.branch_address.state}` : "Online"}
+                                                {t.branch_address || "Online"}
                                             </div>
                                         </td>
                                         <td className="px-5 py-3 text-right mono">{fmtGrams(t.quantity)}</td>
@@ -203,7 +229,7 @@ export default function Transactions() {
                         </thead>
                         <tbody>
                             {paginatedPayments.map((p) => {
-                                const credit = p.transaction_type === "Credited to wallet";
+                                const credit = getPaymentDirection(p) === "credit";
                                 return (
                                     <tr key={p.payment_id} className="border-t border-border hover:bg-secondary/30">
                                         <td className="px-5 py-3 mono text-xs text-muted-foreground">

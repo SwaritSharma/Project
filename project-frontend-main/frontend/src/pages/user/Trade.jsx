@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { api, fmtINR, fmtINR2, fmtGrams } from "@/lib/api";
+import { api, fmtINR, fmtINR2, fmtGrams, toastApiError } from "@/lib/api";
 import { Card, PageHeader, Button, Field, Input, Badge } from "@/components/ui-kit";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -119,8 +119,8 @@ function BuyForm({ vendors, balance, userId, onDone }) {
             const term = q.toLowerCase();
             res = res.filter(
                 (v) =>
-                    v.vendor_name.toLowerCase().includes(term) ||
-                    (v.description && v.description.toLowerCase().includes(term))
+                    (v.vendor_name || "").toLowerCase().includes(term) ||
+                    ((v.description || "").toLowerCase().includes(term))
             );
         }
         
@@ -168,7 +168,7 @@ function BuyForm({ vendors, balance, userId, onDone }) {
             setQty("");
             onDone();
         } catch (err) {
-            toast.error(err.response?.data?.detail || "Buy failed");
+            toastApiError(err, "Buy failed");
         } finally {
             setBusy(false);
         }
@@ -393,7 +393,7 @@ function SellForm({ holdings, userId, onDone }) {
             setQty("");
             onDone();
         } catch (err) {
-            toast.error(err.response?.data?.detail || "Sell failed");
+            toastApiError(err, "Sell failed");
         } finally {
             setBusy(false);
         }
@@ -446,8 +446,8 @@ function SellForm({ holdings, userId, onDone }) {
                                             </span>
                                         </div>
                                         <div className="text-xs text-muted-foreground mt-1">
-                                            {h.branch_address.city},{" "}
-                                            {h.branch_address.state}
+                                            {h.branch_address?.city},{" "}
+                                            {h.branch_address?.state}
                                         </div>
                                     </button>
                                 );
